@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Tra Cứu (Official Extended)</title>
+    <title>Wiki Tra Cứu (Smart Match)</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -40,7 +40,6 @@
         button.tab-btn.active { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; }
         /* Màu nút Official đặc biệt */
         button#mode-official.active { background: linear-gradient(135deg, #e17055, #ff7675); color: white; box-shadow: 0 4px 15px rgba(225, 112, 85, 0.4); }
-        /* Màu nút con của Official (Cosmetic/Fish) */
         #tabs-official button.tab-btn.active { background: linear-gradient(135deg, #e17055, #ff7675); }
 
         .column-headers {
@@ -174,16 +173,16 @@
         // 1. CẤU HÌNH LIÊN KẾT
         // ==========================================
         const SHEET_CONFIG = {
-            // Tier (Publish)
+            // Tier
             tier_boat:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=0&single=true&output=csv',
             tier_skin:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=701267659&single=true&output=csv',
-            // Obtain (Publish)
+            // Obtain
             obtain_boat: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=1752951421&single=true&output=csv',
             obtain_skin: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=2094862161&single=true&output=csv',
-            // Images (Publish)
+            // Images
             images:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=138903966&single=true&output=csv',
             
-            // Official (Link View Only - Đi qua Proxy)
+            // Official (View Only)
             official_cosmetic: 'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=0#gid=0',
             official_fish:     'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=1767682450#gid=1767682450'
         };
@@ -202,6 +201,13 @@
         let imageCache = {}; 
         let dataCache = {};    
 
+        // --- HÀM CHUẨN HÓA KEY (FIX LỖI DẤU NHÁY) ---
+        function normalizeKey(str) {
+            if (!str) return "";
+            // Chuyển về chữ hoa, xóa khoảng trắng thừa, thay dấu nháy cong/huyền thành nháy thẳng
+            return str.trim().toUpperCase().replace(/[‘’`]/g, "'");
+        }
+
         function updateStickyOffset() {
             const stickyHeader = document.getElementById('sticky-wrapper');
             if (stickyHeader) {
@@ -219,20 +225,15 @@
                 await fetchImages(forceUpdate);
             }
             
-            // Key sẽ là: tier_boat, obtain_skin, official_cosmetic, official_fish
-            let sheetKey = `${currentMode}_${currentTab}`;
+            let sheetKey = (currentMode === 'official') ? `official_${currentTab}` : `${currentMode}_${currentTab}`;
             updateHeaders();
             
-            // Logic ẩn hiện tab con
             const tabsStd = document.getElementById('tabs-standard');
             const tabsOff = document.getElementById('tabs-official');
-            
             if (currentMode === 'official') {
-                tabsStd.style.display = 'none';
-                tabsOff.style.display = 'flex';
+                tabsStd.style.display = 'none'; tabsOff.style.display = 'flex';
             } else {
-                tabsStd.style.display = 'flex';
-                tabsOff.style.display = 'none';
+                tabsStd.style.display = 'flex'; tabsOff.style.display = 'none';
             }
             setTimeout(updateStickyOffset, 50);
 
@@ -265,7 +266,12 @@
                     const img1 = cols[COL_MAP.images.img1]?.trim();
                     const img2 = cols[COL_MAP.images.img2]?.trim();
                     const flag = cols[COL_MAP.images.flag]?.trim().toLowerCase();
-                    imageCache[name.toUpperCase()] = {
+                    
+                    // SỬ DỤNG NORMALIZE KEY KHI LƯU
+                    const key = normalizeKey(name);
+                    
+                    imageCache[key] = {
+                        nameDisplay: name, // Lưu tên gốc để hiển thị cho đẹp
                         urls: [img1, img2].filter(url => url && url.length > 5),
                         isBoat: (flag && flag.includes('boat')),
                         stats: {
@@ -285,7 +291,6 @@
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
             let fetchUrl = '';
 
-            // Nếu key chứa chữ "official" -> Dùng Proxy
             if (key.includes('official')) {
                 try {
                     const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
@@ -305,7 +310,7 @@
                 if (!res.ok) throw new Error("Lỗi kết nối");
                 return await res.text();
             } catch (e) {
-                document.getElementById('data-container').innerHTML = `<div style="color:red; text-align:center;">Lỗi tải (${key}): ${e.message}</div>`;
+                document.getElementById('data-container').innerHTML = `<div style="color:red; text-align:center;">Lỗi tải: ${e.message}</div>`;
                 return null;
             }
         }
@@ -371,11 +376,14 @@
                     row.setAttribute('data-parent-tier', currentTierName);
 
                     let interactionHtml = '';
-                    const itemData = imageCache[name.toUpperCase().trim()];
+                    // SỬ DỤNG NORMALIZE KEY KHI TÌM
+                    const key = normalizeKey(name);
+                    const itemData = imageCache[key];
                     
                     if (itemData) {
                         if (itemData.isBoat) {
-                            interactionHtml = `<span class="hover-wrapper click-trigger" onclick="openModal('${name.toUpperCase().trim()}')">${name}</span>`;
+                            // Gửi key chuẩn hóa vào hàm openModal
+                            interactionHtml = `<span class="hover-wrapper click-trigger" onclick="openModal('${key.replace(/'/g, "\\'")}')">${name}</span>`;
                         } else if (itemData.urls.length > 0) {
                             const imgsJson = JSON.stringify(itemData.urls).replace(/"/g, '&quot;');
                             interactionHtml = `
@@ -402,11 +410,14 @@
             updateStickyOffset();
         }
 
-        function openModal(itemName) {
+        function openModal(itemKey) {
             const modal = document.getElementById('info-modal');
-            const data = imageCache[itemName];
+            const data = imageCache[itemKey]; // Tìm bằng Key đã chuẩn hóa
             if (!data) return;
-            document.getElementById('modal-item-name').innerText = itemName;
+            
+            // Hiển thị tên gốc cho đẹp
+            document.getElementById('modal-item-name').innerText = data.nameDisplay;
+            
             const imgContainer = document.getElementById('modal-images-container');
             let imgHtml = '';
             data.urls.forEach(url => { imgHtml += `<div class="img-box"><img src="${url}"></div>`; });
@@ -449,19 +460,14 @@
 
         function switchMode(mode) {
             currentMode = mode;
-            // Logic chọn tab con mặc định cho từng mode
-            if (mode === 'official') {
-                currentTab = 'cosmetic'; 
-            } else {
-                currentTab = 'boat';
-            }
+            if (mode === 'official') { currentTab = 'cosmetic'; } else { currentTab = 'boat'; }
             
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('mode-' + mode).classList.add('active');
             
-            // Cập nhật UI nút tab con active
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + currentTab).classList.add('active');
+            const tabBtn = document.getElementById('tab-' + currentTab);
+            if(tabBtn) tabBtn.classList.add('active');
 
             loadAll(false);
             window.scrollTo(0, 0); 
@@ -479,7 +485,7 @@
             const btn = document.getElementById('refresh-btn');
             btn.style.transform = 'rotate(360deg)';
             setTimeout(() => btn.style.transform = '', 500);
-            let sheetKey = `${currentMode}_${currentTab}`;
+            let sheetKey = (currentMode === 'official') ? `official_${currentTab}` : `${currentMode}_${currentTab}`;
             dataCache[sheetKey] = null;
             loadAll(true);
         }
