@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Tra Cứu Fisch (v8.2 - Auto Scraper)</title>
+    <title>Wiki Tra Cứu Fisch (v8.3 - Ultimate Scraper)</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -122,7 +122,7 @@
         @media (max-width: 700px) { .modal-body { flex-direction: column; } .modal-right { border-left: none; border-top: 1px solid #eee; padding-left: 0; padding-top: 20px; } }
 
         .img-box { width: 100%; aspect-ratio: 16 / 9; background-color: #f8f9fa; border-radius: 12px; overflow: hidden; border: 1px solid #e9ecef; display: flex; justify-content: center; align-items: center; position: relative; }
-        .img-box img { width: 100%; height: 100%; object-fit: contain; }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
         .img-label { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -222,23 +222,22 @@
         window.addEventListener('resize', updateStickyOffset);
 
         // ==========================================
-        // 2. CORE: FETCH WITH PROXY BACKUP
+        // 2. BACKUP PROXY SYSTEM (MẠNH MẼ)
         // ==========================================
-        async function fetchTextWithBackup(url, useJson = false) {
-            // Danh sách Proxy theo thứ tự ưu tiên
+        async function fetchTextWithBackup(url) {
             const proxies = [
                 {
-                    // Proxy 1: CodeTabs (Trả về Text thuần) - Nhanh nhưng hay rate limit
+                    name: "CodeTabs",
                     getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
                     isJson: false
                 },
                 {
-                    // Proxy 2: AllOrigins (Trả về JSON {contents: "..."}) - Ổn định
+                    name: "AllOrigins",
                     getUrl: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
                     isJson: true
                 },
                 {
-                    // Proxy 3: CorsProxy.io (Backup cuối)
+                    name: "CorsProxy",
                     getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
                     isJson: false
                 }
@@ -249,8 +248,9 @@
             for (let proxy of proxies) {
                 try {
                     const fetchUrl = proxy.getUrl(url);
+                    // console.log(`Trying Proxy: ${proxy.name}`);
                     const res = await fetch(fetchUrl);
-                    if (!res.ok) throw new Error(`Proxy ${proxy.getUrl('...')} error: ${res.status}`);
+                    if (!res.ok) throw new Error(`Status ${res.status}`);
                     
                     if (proxy.isJson) {
                         const data = await res.json();
@@ -259,12 +259,12 @@
                         return await res.text();
                     }
                 } catch (e) {
-                    console.warn("Proxy Failed, trying next...", e);
+                    console.warn(`Proxy ${proxy.name} failed. Trying next...`);
                     lastError = e;
-                    continue; // Thử proxy tiếp theo
+                    continue; 
                 }
             }
-            throw new Error("All proxies failed: " + lastError.message);
+            throw new Error("All proxies failed.");
         }
 
         async function loadAll(forceUpdate = false) {
@@ -347,15 +347,14 @@
                     const gid = gidMatch ? gidMatch[1] : '0';
                     if(sheetId) {
                         const gvizLink = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                        // Dùng cơ chế Proxy Backup cho Sheet luôn để ổn định
+                        // Sử dụng Backup Proxy cho Sheet để đảm bảo không bị chặn
                         try {
                             return await fetchTextWithBackup(gvizLink + timeStamp);
-                        } catch (e) { throw e; }
+                        } catch(e) { throw e; }
                     } else { throw new Error("Link Official lỗi"); }
                 } catch(e) { return null; }
             } 
             
-            // Xử lý link CSV thường (Google Pub)
             try {
                 const res = await fetch(url + timeStamp);
                 if (!res.ok) throw new Error("Lỗi kết nối");
@@ -460,8 +459,60 @@
         }
 
         // ==========================================
-        // 3. AUTO-SCRAPER VỚI BACKUP & LOGIC MỚI
+        // 3. AUTO-SCRAPER (ULTIMATE LOGIC)
         // ==========================================
+        
+        // HÀM HELPER: TÌM GIÁ TRỊ THÔNG MINH
+        function findValueByKeyword(doc, keyword) {
+            // Priority 1: Custom Class of Fisch Wiki (.data-heading / .data-content)
+            try {
+                const headings = doc.querySelectorAll('.data-heading');
+                for (let h of headings) {
+                    if (h.textContent.toLowerCase().includes(keyword)) {
+                        const content = h.parentElement.querySelector('.data-content');
+                        if (content) return content.textContent.trim();
+                    }
+                }
+            } catch (e) {}
+
+            // Priority 2: Fandom Standard (.pi-data-label / .pi-data-value)
+            try {
+                const labels = doc.querySelectorAll('.pi-data-label');
+                for (let l of labels) {
+                    if (l.textContent.toLowerCase().includes(keyword)) {
+                        const val = l.nextElementSibling || l.parentElement.querySelector('.pi-data-value');
+                        if (val) return val.textContent.trim();
+                    }
+                }
+            } catch (e) {}
+
+            // Priority 3: Blind XPath Search (Last Resort)
+            // Tìm tất cả text node chứa keyword, rồi tìm số gần đó
+            try {
+                const xpath = `//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${keyword}')]`;
+                const iterator = doc.evaluate(xpath, doc, null, XPathResult.ANY_TYPE, null);
+                let node = iterator.iterateNext();
+                
+                while (node) {
+                    if (node.textContent.length < 50) { // Chỉ xét node ngắn (tiêu đề)
+                        // Lấy text của node cha
+                        let parentText = node.parentElement.textContent.replace(/\s+/g, ' ').trim();
+                        // Regex tìm số sau keyword (Vd: Speed: 80)
+                        let regex = new RegExp(`${keyword}[:\\s]+([0-9.]+\\s?[a-zA-Z°/%]*)`, 'i');
+                        let match = parentText.match(regex);
+                        if (match) return match[1];
+                        
+                        // Hoặc tìm trong thẻ anh em kế tiếp
+                        let sibling = node.nextElementSibling || node.parentElement.nextElementSibling;
+                        if (sibling) return sibling.textContent.trim();
+                    }
+                    node = iterator.iterateNext();
+                }
+            } catch (e) { console.log("XPath logic error", e); }
+
+            return '?';
+        }
+
         async function openModal(itemKey) {
             const modal = document.getElementById('info-modal');
             const modalBody = document.getElementById('modal-body-content');
@@ -473,13 +524,13 @@
             modal.classList.add('open');
             title.innerText = data.nameDisplay;
 
-            // Nếu chưa fetch dữ liệu hoặc dữ liệu cũ bị lỗi, thử fetch lại
+            // Nếu chưa fetch hoặc lần trước bị lỗi, fetch lại
             if ((!data.fetched || (data.stats && data.stats.speed === 'Error')) && data.wikiLink) {
                 modalBody.innerHTML = `
                     <div class="modal-loading">
                         <div class="spinner"></div>
-                        <div>Đang kết nối Wiki (Fischipedia)...</div>
-                        <small style="font-size:0.8em; opacity:0.7">Sử dụng Auto-Scraper v8.2</small>
+                        <div>Đang kết nối Wiki...</div>
+                        <small style="font-size:0.8em; opacity:0.7">Sử dụng Auto-Scraper v8.3</small>
                     </div>`;
                 await scrapeWikiData(itemKey, data.wikiLink);
             }
@@ -488,56 +539,29 @@
 
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
-                // Dùng hàm fetchTextWithBackup thay vì gọi trực tiếp
+                // console.log(`Scraping: ${wikiUrl}`);
                 const html = await fetchTextWithBackup(wikiUrl);
                 
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 
-                const stats = { speed: '?', turn: '?', accel: '?', seat: '?' };
-
-                // --- LOGIC MỚI: TARGET CHÍNH XÁC CLASS CỦA WIKI NÀY ---
-                // Cấu trúc: .infobox-datarow > .data-heading (Label) + .data-content (Value)
-                const rows = doc.querySelectorAll('.infobox-datarow');
+                // --- 1. LẤY STATS ---
+                const stats = {
+                    speed: findValueByKeyword(doc, 'speed'),
+                    turn:  findValueByKeyword(doc, 'steering') === '?' ? findValueByKeyword(doc, 'turn') : findValueByKeyword(doc, 'steering'),
+                    accel: findValueByKeyword(doc, 'acceleration'),
+                    seat:  findValueByKeyword(doc, 'seats') === '?' ? findValueByKeyword(doc, 'seat') : findValueByKeyword(doc, 'seats')
+                };
                 
-                if (rows.length > 0) {
-                    rows.forEach(row => {
-                        const labelNode = row.querySelector('.data-heading');
-                        const valueNode = row.querySelector('.data-content');
-                        
-                        if (labelNode && valueNode) {
-                            const label = labelNode.textContent.trim().toLowerCase();
-                            const value = valueNode.textContent.trim();
-                            
-                            if (label.includes('speed')) stats.speed = value;
-                            else if (label.includes('steering')) stats.turn = value;
-                            else if (label.includes('acceleration')) stats.accel = value;
-                            else if (label.includes('seats')) stats.seat = value;
-                        }
-                    });
-                } else {
-                    // Fallback: Nếu không tìm thấy class đặc biệt, thử tìm cấu trúc chuẩn Fandom (.pi-data)
-                    const piRows = doc.querySelectorAll('.pi-data');
-                    piRows.forEach(row => {
-                        const label = row.querySelector('.pi-data-label')?.textContent.toLowerCase() || "";
-                        const value = row.querySelector('.pi-data-value')?.textContent || "";
-                        if (label.includes('speed')) stats.speed = value;
-                        else if (label.includes('turn') || label.includes('steering')) stats.turn = value;
-                        else if (label.includes('accel')) stats.accel = value;
-                        else if (label.includes('seat')) stats.seat = value;
-                    });
-                }
+                // console.log("Stats result:", stats);
 
-                // --- LẤY HÌNH ẢNH ---
+                // --- 2. LẤY HÌNH ẢNH ---
                 let imgGame = null, imgMenu = null;
-                
-                // 1. Tìm ảnh Infobox chính (thường là menu icon)
                 const mainImg = doc.querySelector('.infobox-image img') || doc.querySelector('.pi-image-thumbnail');
                 if (mainImg) {
                     imgMenu = mainImg.getAttribute('src') || mainImg.getAttribute('data-src');
                 }
 
-                // 2. Quét Gallery
                 const galleryImgs = doc.querySelectorAll('.wikia-gallery-item .thumbimage, .gallerybox img');
                 galleryImgs.forEach(img => {
                     const src = img.getAttribute('data-src') || img.getAttribute('src');
@@ -548,7 +572,6 @@
                     }
                 });
 
-                // Xử lý URL (lọc bỏ query string thừa nếu cần, ở đây giữ nguyên cho an toàn)
                 const finalUrls = [imgGame, imgMenu].filter(u => u && u.length > 10);
                 const uniqueUrls = [...new Set(finalUrls)];
 
@@ -558,7 +581,6 @@
 
             } catch (err) {
                 console.error("Scrape Error:", err);
-                // Gán lỗi để hiển thị UI phù hợp
                 imageCache[itemKey].stats = { speed: 'Error', turn: 'Error', accel: 'Error', seat: 'Error' };
                 imageCache[itemKey].fetched = true;
             }
@@ -576,6 +598,7 @@
                     if (data.urls.length > 1) {
                          label = (index === 0) ? "In-Game / Main" : "Menu / Icon"; 
                     }
+                    // Thêm referrerpolicy="no-referrer" để tránh lỗi 403 từ Fandom
                     imgHtml += `
                         <div class="img-box">
                             <img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=No+Image'">
@@ -597,10 +620,10 @@
                 <div class="modal-right">
                     <div class="modal-title">
                         Thông số (Wiki) 
-                        ${isError ? '<span style="color:red; font-size:0.6em">(Lỗi kết nối)</span>' : ''}
+                        ${isError ? '<span style="color:red; font-size:0.6em">(Lỗi tải)</span>' : ''}
                     </div>
                     <div id="modal-stats-container">
-                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Không thể tải dữ liệu từ Wiki. Vui lòng thử lại sau.</div>' : ''}
+                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Không thể lấy dữ liệu từ Wiki (Thử lại sau).</div>' : ''}
                         
                         <div class="stat-row"><span class="stat-label">Tốc độ (Speed):</span> <span class="stat-value">${s.speed}</span></div>
                         <div class="stat-row"><span class="stat-label">Bẻ lái (Steering):</span> <span class="stat-value">${s.turn}</span></div>
@@ -608,7 +631,7 @@
                         <div class="stat-row"><span class="stat-label">Chỗ ngồi:</span> <span class="stat-value">${s.seat}</span></div>
                         
                         <div style="margin-top:20px; font-size:0.9em; text-align:right">
-                            <a href="${data.wikiLink}" target="_blank" style="color:#white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">
+                            <a href="${data.wikiLink}" target="_blank" style="color:white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">
                                 Xem gốc trên Wiki ↗
                             </a>
                         </div>
