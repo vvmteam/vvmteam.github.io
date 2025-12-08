@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Tra Cứu Fisch (v9.1 - API Proxy)</title>
+    <title>Wiki Tra Cứu Fisch (v9.3 - Fischipedia Core)</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -220,7 +220,7 @@
         window.addEventListener('resize', updateStickyOffset);
 
         // ==========================================
-        // 2. SHEET FETCH (Giữ nguyên)
+        // 2. SHEET FETCH (AllOrigins fallback CodeTabs)
         // ==========================================
         async function fetchSheet(key, forceUpdate) {
             let url = SHEET_CONFIG[key];
@@ -235,7 +235,6 @@
                     const gid = gidMatch ? gidMatch[1] : '0';
                     if(sheetId) {
                         const gvizLink = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                        // Dùng AllOrigins cho Sheet (ổn định hơn CodeTabs cho text)
                         try {
                              const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(gvizLink + timeStamp)}`);
                              if(res.ok) {
@@ -243,7 +242,6 @@
                                  return json.contents;
                              }
                         } catch(e) {
-                            // Fallback CodeTabs
                             const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizLink + timeStamp)}`;
                             const res2 = await fetch(proxyUrl);
                             if(res2.ok) return await res2.text();
@@ -267,7 +265,7 @@
         }
 
         // ==========================================
-        // 3. CORE LOGIC (Load, Render, etc...)
+        // 3. CORE LOGIC 
         // ==========================================
         async function loadAll(forceUpdate = false) {
             const container = document.getElementById('data-container');
@@ -429,22 +427,18 @@
         }
 
         // ==========================================
-        // 4. HYBRID SCRAPER: API (DATA) + PROXY (CORS)
+        // 4. FISCHIPEDIA SCRAPER (PROXY ROTATION)
         // ==========================================
         
-        // Hàm trích xuất giá trị từ HTML
+        // Cấu trúc HTML đặc thù của Fischipedia
         function getFischStats(doc, label) {
-            const headings = doc.querySelectorAll('.data-heading, .pi-data-label');
+            // Target: <p class="data-heading">Speed</p> <ul class="data-content">80 S/ps</ul>
+            const headings = doc.querySelectorAll('.data-heading');
             for (let h of headings) {
                 if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) {
                     let sibling = h.nextElementSibling;
-                    if (sibling && (sibling.classList.contains('data-content') || sibling.classList.contains('pi-data-value'))) {
+                    if (sibling && sibling.classList.contains('data-content')) {
                          return sibling.textContent.trim();
-                    }
-                    let parent = h.parentElement;
-                    if (parent) {
-                        let content = parent.querySelector('.data-content, .pi-data-value');
-                        if (content) return content.textContent.trim();
                     }
                 }
             }
@@ -466,49 +460,75 @@
                 modalBody.innerHTML = `
                     <div class="modal-loading">
                         <div class="spinner"></div>
-                        <div>Đang kết nối API qua Proxy...</div>
-                        <small style="font-size:0.8em; opacity:0.7">API via AllOrigins</small>
+                        <div>Đang tải từ Fischipedia...</div>
                     </div>`;
                 await scrapeWikiData(itemKey, data.wikiLink);
             }
             renderModalContent(itemKey);
         }
 
+        // Chiến thuật: Thử từng proxy, nếu lỗi Cloudflare thì thử cái khác
+        async function fetchTextWithRotation(url) {
+            const cleanUrl = url.split('#')[0]; // Bỏ anchor
+            const proxies = [
+                {
+                    name: "CodeTabs", // Thường load được text nhưng hay dính captcha
+                    getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+                    isJson: false
+                },
+                {
+                    name: "AllOrigins", // Ổn định nhưng hay bị Fischipedia chặn "File not found"
+                    getUrl: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+                    isJson: true
+                },
+                {
+                    name: "CorsProxy", 
+                    getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+                    isJson: false
+                }
+            ];
+
+            for (let proxy of proxies) {
+                try {
+                    console.log(`Trying Proxy: ${proxy.name}`);
+                    const res = await fetch(proxy.getUrl(cleanUrl));
+                    if (!res.ok) throw new Error("Status " + res.status);
+                    
+                    let content = "";
+                    if (proxy.isJson) {
+                        const json = await res.json();
+                        content = json.contents;
+                    } else {
+                        content = await res.text();
+                    }
+
+                    // Kiểm tra xem có bị Cloudflare chặn không (Content quá ngắn)
+                    if (content.length < 1000 || content.includes("Verifying you are human") || content.includes("File not found")) {
+                        throw new Error("Blocked by Cloudflare/Server");
+                    }
+                    
+                    return content;
+                } catch(e) {
+                    console.warn(`Proxy ${proxy.name} failed:`, e.message);
+                }
+            }
+            throw new Error("All proxies blocked");
+        }
+
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
-                // 1. Xác định tên trang
-                let pageName = wikiUrl.split('/wiki/')[1];
-                if (!pageName) pageName = imageCache[itemKey].nameDisplay.replace(/ /g, '_');
-
-                // 2. Tạo URL API MediaWiki
-                // Endpoint là fischipedia.org/api.php
-                const wikiApiUrl = `https://fischipedia.org/api.php?action=parse&page=${pageName}&prop=text&format=json`;
-                
-                // 3. BỌC API VÀO PROXY ALLORIGINS
-                // Đây là bước quan trọng nhất: Proxy giúp bypass CORS, còn API giúp bypass Cloudflare
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(wikiApiUrl)}`;
-                
-                console.log(`[Proxy-API] Calling: ${proxyUrl}`);
-
-                const res = await fetch(proxyUrl);
-                if (!res.ok) throw new Error("Proxy Error");
-                
-                const proxyData = await res.json(); // Data từ AllOrigins
-                
-                // Parse chuỗi JSON bên trong (Data từ Wiki)
-                if (!proxyData.contents) throw new Error("Empty Proxy Content");
-                const wikiData = JSON.parse(proxyData.contents);
-
-                if (wikiData.error) {
-                    console.error("Wiki API Error:", wikiData.error);
-                    throw new Error("Wiki Page Not Found via API");
+                // Xác định URL: Nếu trong sheet có link thì dùng, không thì đoán
+                let targetUrl = wikiUrl;
+                if (!targetUrl.includes('fischipedia.org')) {
+                     // Nếu dữ liệu cũ trỏ tới Fandom, force sang Fischipedia
+                     let pageName = imageCache[itemKey].nameDisplay.replace(/ /g, '_');
+                     targetUrl = `https://fischipedia.org/wiki/${pageName}`;
                 }
 
-                const htmlContent = wikiData.parse.text['*'];
+                const html = await fetchTextWithRotation(targetUrl);
                 
-                // 4. Parse HTML từ API
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlContent, 'text/html');
+                const doc = parser.parseFromString(html, 'text/html');
 
                 const stats = {
                     speed: getFischStats(doc, 'Speed'),
@@ -521,21 +541,28 @@
 
                 // Lấy ảnh
                 let imgGame = null, imgMenu = null;
-                const mainImg = doc.querySelector('.infobox-image img, .pi-image-thumbnail');
-                if (mainImg) {
-                    imgMenu = mainImg.getAttribute('src') || mainImg.getAttribute('data-src');
-                }
-                const galleryImgs = doc.querySelectorAll('.wikia-gallery-item .thumbimage, .gallerybox img');
+                // Ưu tiên ảnh trong infobox
+                const mainImg = doc.querySelector('.infobox-image img');
+                if (mainImg) imgMenu = mainImg.getAttribute('src');
+
+                const galleryImgs = doc.querySelectorAll('.gallerybox img');
                 galleryImgs.forEach(img => {
-                    const src = img.getAttribute('data-src') || img.getAttribute('src');
-                    const caption = img.closest('.wikia-gallery-item')?.textContent.toLowerCase() || "";
+                    const src = img.getAttribute('src');
+                    const caption = img.closest('.gallerybox')?.textContent.toLowerCase() || "";
                     if (src) {
-                        if (caption.includes('game') || caption.includes('play')) imgGame = src;
-                        else if (!imgMenu && (caption.includes('menu') || caption.includes('icon'))) imgMenu = src;
+                        if (caption.includes('game')) imgGame = src;
+                        else if (!imgMenu && caption.includes('menu')) imgMenu = src;
                     }
                 });
 
-                const finalUrls = [imgGame, imgMenu].filter(u => u && u.length > 10);
+                // Xử lý link ảnh (thêm domain nếu thiếu)
+                const fixUrl = (u) => {
+                    if (!u) return null;
+                    if (u.startsWith('/')) return 'https://fischipedia.org' + u;
+                    return u;
+                };
+
+                const finalUrls = [fixUrl(imgGame), fixUrl(imgMenu)].filter(u => u);
                 const uniqueUrls = [...new Set(finalUrls)];
 
                 imageCache[itemKey].stats = stats;
@@ -558,12 +585,10 @@
             if (data.urls && data.urls.length > 0) {
                 data.urls.forEach((url, index) => { 
                     let label = "Image";
-                    if (data.urls.length > 1) {
-                         label = (index === 0) ? "In-Game / Main" : "Menu / Icon"; 
-                    }
+                    if (data.urls.length > 1) label = (index === 0) ? "In-Game" : "Menu"; 
                     imgHtml += `
                         <div class="img-box">
-                            <img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=Image+Error'">
+                            <img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=No+Image'">
                             <span class="img-label">${label}</span>
                         </div>`; 
                 });
@@ -581,11 +606,11 @@
                 <div class="modal-left" id="modal-images-container">${imgHtml}</div>
                 <div class="modal-right">
                     <div class="modal-title">
-                        Thông số (Wiki) 
-                        ${isError ? '<span style="color:red; font-size:0.6em">(Lỗi tải)</span>' : ''}
+                        Thông số (Fischipedia) 
+                        ${isError ? '<span style="color:red; font-size:0.6em">(Bị chặn)</span>' : ''}
                     </div>
                     <div id="modal-stats-container">
-                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Không thể tải dữ liệu (Cloudflare/CORS chặn).</div>' : ''}
+                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Cloudflare đang chặn kết nối đến Wiki này. Vui lòng bấm link bên dưới để xem trực tiếp.</div>' : ''}
                         
                         <div class="stat-row"><span class="stat-label">Tốc độ (Speed):</span> <span class="stat-value">${s.speed}</span></div>
                         <div class="stat-row"><span class="stat-label">Bẻ lái (Steering):</span> <span class="stat-value">${s.turn}</span></div>
@@ -593,8 +618,8 @@
                         <div class="stat-row"><span class="stat-label">Chỗ ngồi:</span> <span class="stat-value">${s.seat}</span></div>
                         
                         <div style="margin-top:20px; font-size:0.9em; text-align:right">
-                            <a href="${data.wikiLink}" target="_blank" style="color:white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">
-                                Xem gốc trên Wiki ↗
+                            <a href="${data.wikiLink || 'https://fischipedia.org'}" target="_blank" style="color:white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">
+                                Mở Fischipedia.org ↗
                             </a>
                         </div>
                     </div>
