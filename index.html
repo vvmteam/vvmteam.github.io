@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Tra Cứu Fisch (v8.5 - Stable Scraper)</title>
+    <title>Wiki Tra Cứu Fisch (v9.1 - API Proxy)</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -176,7 +176,7 @@
         </div>
     </div>
 
-<script>
+    <script>
         // ==========================================
         // 1. CẤU HÌNH LIÊN KẾT
         // ==========================================
@@ -220,7 +220,7 @@
         window.addEventListener('resize', updateStickyOffset);
 
         // ==========================================
-        // 2. SHEET FETCH (Giữ nguyên logic Proxy cho Sheet)
+        // 2. SHEET FETCH (Giữ nguyên)
         // ==========================================
         async function fetchSheet(key, forceUpdate) {
             let url = SHEET_CONFIG[key];
@@ -259,6 +259,11 @@
             } catch (e) {
                 return null;
             }
+        }
+
+        function splitCSV(line) {
+            const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            return cols.map(c => c.replace(/^"|"$/g, '').trim().replace(/""/g, '"'));
         }
 
         // ==========================================
@@ -424,12 +429,11 @@
         }
 
         // ==========================================
-        // 4. API SCRAPER (THAY THẾ PROXY SCRAPER)
+        // 4. HYBRID SCRAPER: API (DATA) + PROXY (CORS)
         // ==========================================
         
-        // Hàm trích xuất giá trị từ HTML (đã được lấy về)
+        // Hàm trích xuất giá trị từ HTML
         function getFischStats(doc, label) {
-            // Logic tìm kiếm class đặc thù của Fischipedia
             const headings = doc.querySelectorAll('.data-heading, .pi-data-label');
             for (let h of headings) {
                 if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) {
@@ -437,7 +441,6 @@
                     if (sibling && (sibling.classList.contains('data-content') || sibling.classList.contains('pi-data-value'))) {
                          return sibling.textContent.trim();
                     }
-                    // Fallback
                     let parent = h.parentElement;
                     if (parent) {
                         let content = parent.querySelector('.data-content, .pi-data-value');
@@ -463,8 +466,8 @@
                 modalBody.innerHTML = `
                     <div class="modal-loading">
                         <div class="spinner"></div>
-                        <div>Đang kết nối API Wiki...</div>
-                        <small style="font-size:0.8em; opacity:0.7">Direct API Call (No-Proxy)</small>
+                        <div>Đang kết nối API qua Proxy...</div>
+                        <small style="font-size:0.8em; opacity:0.7">API via AllOrigins</small>
                     </div>`;
                 await scrapeWikiData(itemKey, data.wikiLink);
             }
@@ -473,33 +476,37 @@
 
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
-                // 1. Lấy tên bài viết từ URL (ví dụ: https://fischipedia.org/wiki/Cthulhu_Boat -> Cthulhu_Boat)
+                // 1. Xác định tên trang
                 let pageName = wikiUrl.split('/wiki/')[1];
-                if (!pageName) pageName = imageCache[itemKey].nameDisplay.replace(/ /g, '_'); // Fallback
+                if (!pageName) pageName = imageCache[itemKey].nameDisplay.replace(/ /g, '_');
 
-                // 2. Tạo URL API của Fandom
-                // action=parse: Đọc nội dung bài
-                // page: Tên bài
-                // prop=text: Chỉ lấy HTML nội dung
-                // origin=*: QUAN TRỌNG NHẤT - Cho phép CORS để fetch trực tiếp
-                const apiUrl = `https://fischipedia.org/api.php?action=parse&page=${pageName}&prop=text&format=json&origin=*`;
+                // 2. Tạo URL API MediaWiki
+                // Endpoint là fischipedia.org/api.php
+                const wikiApiUrl = `https://fischipedia.org/api.php?action=parse&page=${pageName}&prop=text&format=json`;
                 
-                console.log(`[API] Calling: ${apiUrl}`);
+                // 3. BỌC API VÀO PROXY ALLORIGINS
+                // Đây là bước quan trọng nhất: Proxy giúp bypass CORS, còn API giúp bypass Cloudflare
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(wikiApiUrl)}`;
+                
+                console.log(`[Proxy-API] Calling: ${proxyUrl}`);
 
-                const res = await fetch(apiUrl);
-                if (!res.ok) throw new Error("API Access Error");
+                const res = await fetch(proxyUrl);
+                if (!res.ok) throw new Error("Proxy Error");
                 
-                const json = await res.json();
+                const proxyData = await res.json(); // Data từ AllOrigins
                 
-                if (json.error) {
-                    console.error("Wiki API Error:", json.error);
-                    throw new Error("Page not found in Wiki API");
+                // Parse chuỗi JSON bên trong (Data từ Wiki)
+                if (!proxyData.contents) throw new Error("Empty Proxy Content");
+                const wikiData = JSON.parse(proxyData.contents);
+
+                if (wikiData.error) {
+                    console.error("Wiki API Error:", wikiData.error);
+                    throw new Error("Wiki Page Not Found via API");
                 }
 
-                // Lấy HTML thô từ JSON
-                const htmlContent = json.parse.text['*'];
+                const htmlContent = wikiData.parse.text['*'];
                 
-                // 3. Parse HTML
+                // 4. Parse HTML từ API
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlContent, 'text/html');
 
@@ -510,9 +517,9 @@
                     seat:  getFischStats(doc, 'Seats')
                 };
                 
-                console.log("[API] Stats:", stats);
+                console.log("[Stats] Found:", stats);
 
-                // Lấy ảnh từ HTML API (đã có trong parse.text)
+                // Lấy ảnh
                 let imgGame = null, imgMenu = null;
                 const mainImg = doc.querySelector('.infobox-image img, .pi-image-thumbnail');
                 if (mainImg) {
@@ -536,7 +543,7 @@
                 imageCache[itemKey].fetched = true;
 
             } catch (err) {
-                console.error("[API] Error:", err);
+                console.error("[Scraper] Error:", err);
                 imageCache[itemKey].stats = { speed: 'Error', turn: 'Error', accel: 'Error', seat: 'Error' };
                 imageCache[itemKey].fetched = true;
             }
@@ -578,7 +585,7 @@
                         ${isError ? '<span style="color:red; font-size:0.6em">(Lỗi tải)</span>' : ''}
                     </div>
                     <div id="modal-stats-container">
-                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Không thể tải dữ liệu (Wiki chặn hoặc sai tên).</div>' : ''}
+                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Không thể tải dữ liệu (Cloudflare/CORS chặn).</div>' : ''}
                         
                         <div class="stat-row"><span class="stat-label">Tốc độ (Speed):</span> <span class="stat-value">${s.speed}</span></div>
                         <div class="stat-row"><span class="stat-label">Bẻ lái (Steering):</span> <span class="stat-value">${s.turn}</span></div>
@@ -615,11 +622,6 @@
             }
         }
         window.hideImg = function(el) { const container = el.querySelector('.hover-images'); if (container) { container.classList.remove('active'); } }
-
-        function splitCSV(line) {
-            const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            return cols.map(c => c.replace(/^"|"$/g, '').trim().replace(/""/g, '"'));
-        }
 
         function switchMode(mode) {
             currentMode = mode;
