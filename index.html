@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Tra Cứu (Modal Stats)</title>
+    <title>Wiki Tra Cứu (Official Extended)</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -34,9 +34,14 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 14px;
         }
         button:hover { background-color: #f1f2f6; transform: translateY(-2px); }
+        
+        /* Màu nút */
         button.mode-btn.active { background: linear-gradient(135deg, #0984e3, #74b9ff); color: white; }
         button.tab-btn.active { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; }
+        /* Màu nút Official đặc biệt */
         button#mode-official.active { background: linear-gradient(135deg, #e17055, #ff7675); color: white; box-shadow: 0 4px 15px rgba(225, 112, 85, 0.4); }
+        /* Màu nút con của Official (Cosmetic/Fish) */
+        #tabs-official button.tab-btn.active { background: linear-gradient(135deg, #e17055, #ff7675); }
 
         .column-headers {
             max-width: 900px; margin: 10px auto 0; display: flex;
@@ -67,13 +72,11 @@
         .col-end  { flex: 0.8; text-align: right; font-weight: 800; color: #e17055; }
         .col-status { flex: 0.8; text-align: center; font-weight: 700; color: #00b894; font-size: 0.9em; }
 
-        /* Style cho tên item có Modal (Boat) */
         .click-trigger { cursor: pointer; color: #0984e3; text-decoration: underline; text-decoration-style: dotted; }
         .click-trigger:hover { color: #d63031; }
-        /* Style cho tên item Hover thường (Skin) */
         .hover-trigger { cursor: help; }
 
-        /* --- 4. POPUP ẢNH (HOVER) --- */
+        /* --- POPUP ẢNH --- */
         .hover-wrapper { position: relative; display: inline-block; }
         .hover-images {
             display: none; position: fixed; z-index: 11000;  
@@ -85,45 +88,32 @@
         .hover-images.single-img { grid-template-columns: 1fr; width: 280px; }
         .hover-images.double-img { grid-template-columns: 1fr 1fr; width: 500px; }
 
-        /* --- 5. MODAL (POPUP CLICK) --- */
+        /* --- MODAL --- */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5); z-index: 20000; /* Cao nhất vũ trụ */
-            justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;
+            background: rgba(0, 0, 0, 0.5); z-index: 20000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;
         }
         .modal-overlay.open { display: flex; opacity: 1; }
-        
         .modal-content {
             background: white; width: 90%; max-width: 800px; border-radius: 16px;
             box-shadow: 0 25px 50px rgba(0,0,0,0.5); overflow: hidden;
-            display: flex; flex-direction: column; position: relative;
-            transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; flex-direction: column; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .modal-overlay.open .modal-content { transform: scale(1); }
-
         .modal-header { padding: 15px 20px; background: #2d3436; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .close-modal-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        
         .modal-body { display: flex; padding: 20px; gap: 20px; }
-        
         .modal-left { flex: 1.5; display: flex; flex-direction: column; gap: 10px; }
         .modal-right { flex: 1; border-left: 1px solid #eee; padding-left: 20px; }
-        
         .modal-title { font-size: 1.2em; font-weight: 800; color: #2d3436; margin-bottom: 15px; border-bottom: 2px solid #0984e3; padding-bottom: 5px; display: inline-block; }
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1em; }
         .stat-label { color: #636e72; font-weight: 600; }
         .stat-value { font-weight: 700; color: #2d3436; font-family: 'Consolas', monospace; }
-
-        @media (max-width: 700px) {
-            .modal-body { flex-direction: column; }
-            .modal-right { border-left: none; border-top: 1px solid #eee; padding-left: 0; padding-top: 20px; }
-        }
+        @media (max-width: 700px) { .modal-body { flex-direction: column; } .modal-right { border-left: none; border-top: 1px solid #eee; padding-left: 0; padding-top: 20px; } }
 
         .img-box { width: 100%; aspect-ratio: 16 / 9; background-color: #f8f9fa; border-radius: 12px; overflow: hidden; border: 1px solid #e9ecef; display: flex; justify-content: center; align-items: center; }
         .img-box img { width: 100%; height: 100%; object-fit: contain; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         #refresh-btn { position: fixed; bottom: 30px; right: 30px; z-index: 9999; width: 50px; height: 50px; border-radius: 50%; background: #d63031; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(214, 48, 49, 0.4); display: flex; align-items: center; justify-content: center; }
         .site-footer { text-align: center; padding: 40px 20px 80px 20px; color: #636e72; font-size: 14px; margin-top: 30px; border-top: 1px solid #dfe6e9; background-color: #ebedef; }
         .site-footer b { color: #2d3436; font-weight: 700; }
@@ -140,9 +130,15 @@
                     <div class="separator"></div>
                     <button id="mode-official" class="mode-btn" onclick="switchMode('official')">Official Value</button>
                 </div>
-                <div class="btn-row" id="sub-tabs">
+                
+                <div class="btn-row" id="tabs-standard">
                     <button id="tab-boat" class="tab-btn active" onclick="switchTab('boat')">Thuyền</button>
                     <button id="tab-skin" class="tab-btn" onclick="switchTab('skin')">Skin</button>
+                </div>
+
+                <div class="btn-row" id="tabs-official" style="display: none;">
+                    <button id="tab-cosmetic" class="tab-btn active" onclick="switchTab('cosmetic')">Cosmetic</button>
+                    <button id="tab-fish" class="tab-btn" onclick="switchTab('fish')">Fish</button>
                 </div>
             </div>
         </div>
@@ -160,16 +156,14 @@
     <div id="info-modal" class="modal-overlay" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
-                <span id="modal-item-name">Item Name</span>
+                <span id="modal-item-name">Item</span>
                 <button class="close-modal-btn" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="modal-left" id="modal-images-container">
-                    </div>
+                <div class="modal-left" id="modal-images-container"></div>
                 <div class="modal-right">
                     <div class="modal-title">Thông số</div>
-                    <div id="modal-stats-container">
-                        </div>
+                    <div id="modal-stats-container"></div>
                 </div>
             </div>
         </div>
@@ -180,12 +174,18 @@
         // 1. CẤU HÌNH LIÊN KẾT
         // ==========================================
         const SHEET_CONFIG = {
+            // Tier (Publish)
             tier_boat:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=0&single=true&output=csv',
             tier_skin:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=701267659&single=true&output=csv',
+            // Obtain (Publish)
             obtain_boat: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=1752951421&single=true&output=csv',
             obtain_skin: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=2094862161&single=true&output=csv',
+            // Images (Publish)
             images:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=138903966&single=true&output=csv',
-            official:    'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=0#gid=0'
+            
+            // Official (Link View Only - Đi qua Proxy)
+            official_cosmetic: 'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=0#gid=0',
+            official_fish:     'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=1767682450#gid=1767682450'
         };
 
         const COL_MAP = {
@@ -193,14 +193,13 @@
             obtain_boat: { name: 0, val: 1 },       
             obtain_skin: { name: 0, rod: 1, val: 2 },
             official: { name: 0, val: 1, demand: 2, status: 3 },
-            // Cập nhật mapping cho Sheet Images: H(7), I(8), J(9), K(10), L(11)
-            images: { name: 0, img1: 1, img2: 2, flag: 7, speed: 8, turn: 9, accel: 10, seat: 11, last_update: 8 }, // Last update lấy cùng cột Speed (Header I1)
+            images: { name: 0, img1: 1, img2: 2, flag: 7, speed: 8, turn: 9, accel: 10, seat: 11, last_update: 8 }, 
             q_flag: 16 
         };
 
         let currentMode = 'tier';
         let currentTab  = 'boat';
-        let imageCache = {}; // Cache giờ chứa object {urls: [], isBoat: true/false, stats: {}}
+        let imageCache = {}; 
         let dataCache = {};    
 
         function updateStickyOffset() {
@@ -220,10 +219,21 @@
                 await fetchImages(forceUpdate);
             }
             
-            let sheetKey = (currentMode === 'official') ? 'official' : `${currentMode}_${currentTab}`;
+            // Key sẽ là: tier_boat, obtain_skin, official_cosmetic, official_fish
+            let sheetKey = `${currentMode}_${currentTab}`;
             updateHeaders();
-            const subTabs = document.getElementById('sub-tabs');
-            subTabs.style.display = (currentMode === 'official') ? 'none' : 'flex';
+            
+            // Logic ẩn hiện tab con
+            const tabsStd = document.getElementById('tabs-standard');
+            const tabsOff = document.getElementById('tabs-official');
+            
+            if (currentMode === 'official') {
+                tabsStd.style.display = 'none';
+                tabsOff.style.display = 'flex';
+            } else {
+                tabsStd.style.display = 'flex';
+                tabsOff.style.display = 'none';
+            }
             setTimeout(updateStickyOffset, 50);
 
             if (!forceUpdate && dataCache[sheetKey]) {
@@ -245,7 +255,6 @@
             const lines = csv.split('\n');
             if (lines.length > 0) {
                 const firstRowCols = splitCSV(lines[0]);
-                // Giả định ngày tháng nằm ở header cột I (Index 8)
                 const dateVal = firstRowCols[COL_MAP.images.last_update];
                 document.getElementById('last-update').innerText = dateVal ? dateVal : "Unknown";
             }
@@ -256,11 +265,9 @@
                     const img1 = cols[COL_MAP.images.img1]?.trim();
                     const img2 = cols[COL_MAP.images.img2]?.trim();
                     const flag = cols[COL_MAP.images.flag]?.trim().toLowerCase();
-                    
-                    // Lưu dữ liệu vào cache
                     imageCache[name.toUpperCase()] = {
                         urls: [img1, img2].filter(url => url && url.length > 5),
-                        isBoat: (flag && flag.includes('boat')), // Kiểm tra flag "boat"
+                        isBoat: (flag && flag.includes('boat')),
                         stats: {
                             speed: cols[COL_MAP.images.speed],
                             turn: cols[COL_MAP.images.turn],
@@ -278,7 +285,8 @@
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
             let fetchUrl = '';
 
-            if (key === 'official') {
+            // Nếu key chứa chữ "official" -> Dùng Proxy
+            if (key.includes('official')) {
                 try {
                     const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
                     const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
@@ -297,7 +305,7 @@
                 if (!res.ok) throw new Error("Lỗi kết nối");
                 return await res.text();
             } catch (e) {
-                document.getElementById('data-container').innerHTML = `<div style="color:red; text-align:center;">Lỗi tải: ${e.message}</div>`;
+                document.getElementById('data-container').innerHTML = `<div style="color:red; text-align:center;">Lỗi tải (${key}): ${e.message}</div>`;
                 return null;
             }
         }
@@ -362,29 +370,21 @@
                     row.className = 'row item-entry';
                     row.setAttribute('data-parent-tier', currentTierName);
 
-                    // --- LOGIC PHÂN BIỆT CLICK vs HOVER ---
                     let interactionHtml = '';
                     const itemData = imageCache[name.toUpperCase().trim()];
                     
                     if (itemData) {
                         if (itemData.isBoat) {
-                            // CASE 1: BOAT -> CLICK POPUP
                             interactionHtml = `<span class="hover-wrapper click-trigger" onclick="openModal('${name.toUpperCase().trim()}')">${name}</span>`;
                         } else if (itemData.urls.length > 0) {
-                            // CASE 2: SKIN/OTHER -> HOVER LAZY LOAD
                             const imgsJson = JSON.stringify(itemData.urls).replace(/"/g, '&quot;');
                             interactionHtml = `
                                 <span class="hover-wrapper hover-trigger" onmouseenter="lazyLoadImg(this)" onmouseleave="hideImg(this)" data-imgs="${imgsJson}">
                                     ${name}
                                     <div class="hover-images"></div>
                                 </span>`;
-                        } else {
-                            // Không có ảnh
-                            interactionHtml = name;
-                        }
-                    } else {
-                        interactionHtml = name;
-                    }
+                        } else { interactionHtml = name; }
+                    } else { interactionHtml = name; }
 
                     let extraCol = '';
                     if (currentMode === 'official') extraCol = `<div class="col-status">${col4 || ''}</div>`;
@@ -402,23 +402,15 @@
             updateStickyOffset();
         }
 
-        // --- XỬ LÝ MODAL POPUP (CHO BOAT) ---
         function openModal(itemName) {
             const modal = document.getElementById('info-modal');
             const data = imageCache[itemName];
             if (!data) return;
-
             document.getElementById('modal-item-name').innerText = itemName;
-            
-            // 1. Render Ảnh
             const imgContainer = document.getElementById('modal-images-container');
             let imgHtml = '';
-            data.urls.forEach(url => {
-                imgHtml += `<div class="img-box"><img src="${url}"></div>`;
-            });
+            data.urls.forEach(url => { imgHtml += `<div class="img-box"><img src="${url}"></div>`; });
             imgContainer.innerHTML = imgHtml;
-
-            // 2. Render Thông số
             const statsContainer = document.getElementById('modal-stats-container');
             const s = data.stats;
             statsContainer.innerHTML = `
@@ -427,17 +419,10 @@
                 <div class="stat-row"><span class="stat-label">Acceleration:</span> <span class="stat-value">${s.accel || '?'} S/ps</span></div>
                 <div class="stat-row"><span class="stat-label">Seat:</span> <span class="stat-value">${s.seat || '?'}</span></div>
             `;
-
             modal.classList.add('open');
         }
+        function closeModal(event) { document.getElementById('info-modal').classList.remove('open'); }
 
-        function closeModal(event) {
-            // Nếu click vào overlay hoặc nút đóng thì tắt
-            // (Sự kiện click vào modal-content đã bị stopPropagation ở HTML)
-            document.getElementById('info-modal').classList.remove('open');
-        }
-
-        // --- XỬ LÝ HOVER CŨ ---
         window.lazyLoadImg = function(el) {
             const container = el.querySelector('.hover-images');
             if (container.classList.contains('active')) return;
@@ -455,10 +440,7 @@
                 container.innerHTML = html;
             }
         }
-        window.hideImg = function(el) {
-            const container = el.querySelector('.hover-images');
-            if (container) { container.classList.remove('active'); }
-        }
+        window.hideImg = function(el) { const container = el.querySelector('.hover-images'); if (container) { container.classList.remove('active'); } }
 
         function splitCSV(line) {
             const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
@@ -467,8 +449,20 @@
 
         function switchMode(mode) {
             currentMode = mode;
+            // Logic chọn tab con mặc định cho từng mode
+            if (mode === 'official') {
+                currentTab = 'cosmetic'; 
+            } else {
+                currentTab = 'boat';
+            }
+            
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('mode-' + mode).classList.add('active');
+            
+            // Cập nhật UI nút tab con active
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + currentTab).classList.add('active');
+
             loadAll(false);
             window.scrollTo(0, 0); 
         }
@@ -485,7 +479,7 @@
             const btn = document.getElementById('refresh-btn');
             btn.style.transform = 'rotate(360deg)';
             setTimeout(() => btn.style.transform = '', 500);
-            let sheetKey = (currentMode === 'official') ? 'official' : `${currentMode}_${currentTab}`;
+            let sheetKey = `${currentMode}_${currentTab}`;
             dataCache[sheetKey] = null;
             loadAll(true);
         }
