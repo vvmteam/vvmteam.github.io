@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Fisch (v11.0 - CorsFix Test)</title>
+    <title>Wiki Fisch (v11.1 - CorsLol)</title>
     <style>
         /* --- CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -18,6 +18,7 @@
         button:hover { background-color: #f1f2f6; transform: translateY(-2px); }
         button.mode-btn.active { background: linear-gradient(135deg, #0984e3, #74b9ff); color: white; }
         button.tab-btn.active { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; }
+        button#mode-official.active { background: linear-gradient(135deg, #e17055, #ff7675); color: white; box-shadow: 0 4px 15px rgba(225, 112, 85, 0.4); }
         .column-headers { max-width: 900px; margin: 10px auto 0; display: flex; background: #2d3436; color: #ecf0f1; font-weight: 800; padding: 12px 25px; border-radius: 12px 12px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
         #data-container { max-width: 900px; margin: 0 auto; background: white; border-radius: 0 0 16px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); min-height: 300px; padding-bottom: 30px; overflow: visible; }
         .tier-header { background: #dfe6e9; color: #2d3436; font-weight: 900; text-align: center; padding: 10px; font-size: 1.2em; border-bottom: 2px solid #b2bec3; border-top: 1px solid #fff; box-shadow: none; position: sticky; top: var(--header-offset, 180px); z-index: 1000; }
@@ -148,19 +149,18 @@
         window.addEventListener('resize', updateStickyOffset);
 
         // ==========================================
-        // 2. PROXY SYSTEM (CodeTabs -> CorsFix)
+        // 2. PROXY SYSTEM (CodeTabs -> CorsLol)
         // ==========================================
         async function fetchTextWithProxy(url) {
-            // Danh sách Proxy theo yêu cầu: CodeTabs -> CorsFix
             const proxies = [
                 {
                     name: "CodeTabs",
                     getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
                 },
                 {
-                    name: "CorsFix",
-                    // Sử dụng định dạng bạn yêu cầu: https://proxy.corsfix.com/? + url
-                    getUrl: (u) => `https://proxy.corsfix.com/?${u}`
+                    name: "CorsLol",
+                    // Thay thế CorsFix bằng CorsLol theo yêu cầu
+                    getUrl: (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}`
                 }
             ];
 
@@ -176,7 +176,6 @@
                     
                     const content = await res.text();
                     
-                    // Kiểm tra cơ bản nếu bị Cloudflare chặn
                     if (content.length < 500 || content.includes("Attention Required! | Cloudflare")) {
                         throw new Error("Blocked by Cloudflare");
                     }
@@ -192,14 +191,13 @@
         }
 
         // ==========================================
-        // 3. FETCH SHEET (Sử dụng hệ thống Proxy mới)
+        // 3. FETCH SHEET (Dùng chung Proxy mới)
         // ==========================================
         async function fetchSheet(key, forceUpdate) {
             let url = SHEET_CONFIG[key];
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
 
-            // Xử lý link Official
             if (key.includes('official')) {
                 try {
                     const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
@@ -208,7 +206,6 @@
                     const gid = gidMatch ? gidMatch[1] : '0';
                     if(sheetId) {
                         const gvizLink = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                        // Dùng chung hàm proxy mới cho đồng bộ
                         try {
                             return await fetchTextWithProxy(gvizLink + timeStamp);
                         } catch(e) { return null; }
@@ -217,12 +214,10 @@
             } 
             
             try {
-                // Thử fetch trực tiếp trước (Google CSV thường cho phép CORS)
                 const res = await fetch(url + timeStamp);
                 if (!res.ok) throw new Error("CORS Blocked");
                 return await res.text();
             } catch (e) {
-                // Nếu lỗi CORS, dùng Proxy Backup
                 try {
                     return await fetchTextWithProxy(url + timeStamp);
                 } catch(err) { return null; }
@@ -397,7 +392,7 @@
         }
 
         // ==========================================
-        // 5. AUTO-SCRAPER VỚI CORSFIX
+        // 5. AUTO-SCRAPER VỚI CORS-LOL
         // ==========================================
         
         function getFischStats(doc, label) {
@@ -443,7 +438,7 @@
                      targetUrl = `https://fischipedia.org/wiki/${pageName}`;
                 }
 
-                // Dùng hàm proxy mới (CodeTabs -> CorsFix)
+                // Dùng hàm proxy mới (CodeTabs -> CorsLol)
                 const html = await fetchTextWithProxy(targetUrl);
                 
                 const parser = new DOMParser();
