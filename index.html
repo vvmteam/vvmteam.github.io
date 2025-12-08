@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Cosmetic Value - Fuyutya</title>
+    <title>Fisch Cosmetic Value</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -210,7 +210,6 @@
                 await fetchImages(forceUpdate);
             }
             
-            // Xác định Key Sheet cần tải
             let sheetKey = '';
             if (currentMode === 'official') {
                 sheetKey = 'official';
@@ -220,7 +219,6 @@
 
             updateHeaders();
             
-            // Ẩn/Hiện Tab con
             const subTabs = document.getElementById('sub-tabs');
             if (currentMode === 'official') {
                 subTabs.style.display = 'none'; 
@@ -262,7 +260,7 @@
             });
         }
 
-        // --- HÀM FETCH MỚI: SỬ DỤNG CORSPROXY.IO ---
+        // --- HÀM FETCH ĐÃ ĐỔI PROXY SANG CODETABS ---
         async function fetchSheet(key, forceUpdate) {
             let url = SHEET_CONFIG[key];
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
@@ -270,7 +268,7 @@
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
             let fetchUrl = '';
 
-            // Nếu là link OFFICIAL (chưa publish) -> Dùng Proxy corsproxy.io
+            // Nếu là link OFFICIAL (chưa publish) -> Dùng Proxy CodeTabs
             if (key === 'official') {
                 try {
                     // Tách ID và GID
@@ -281,8 +279,8 @@
                     
                     if(sheetId) {
                         const exportLink = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-                        // Dùng Proxy corsproxy.io (Mạnh hơn allorigins)
-                        fetchUrl = `https://corsproxy.io/?` + encodeURIComponent(exportLink + timeStamp);
+                        // Dùng Proxy CodeTabs - Ổn định hơn
+                        fetchUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(exportLink + timeStamp)}`;
                     } else {
                         throw new Error("Link Official không đúng định dạng");
                     }
@@ -342,21 +340,18 @@
                 let isHeader = false;
 
                 if (currentMode === 'official') {
-                    // --- LOGIC OFFICIAL ---
                     name = cols[COL_MAP.official.name];
                     col2 = cols[COL_MAP.official.val];    
                     col3 = cols[COL_MAP.official.demand]; 
                     col4 = cols[COL_MAP.official.status]; 
                     
-                    // Nguyên tắc riêng: Trống Value & Demand -> Header
                     const isEmptyVal = !col2 || col2.trim() === '';
                     const isEmptyDem = !col3 || col3.trim() === '';
                     if (isEmptyVal && isEmptyDem) isHeader = true;
 
                 } else {
-                    // --- LOGIC CŨ (Tier/Obtain) ---
                     const valQ = cols[COL_MAP.q_flag] ? cols[COL_MAP.q_flag].trim() : '';
-                    isHeader = (valQ !== ''); // Cột Q quyết định
+                    isHeader = (valQ !== ''); 
 
                     if (currentMode === 'tier') {
                         name = cols[COL_MAP.tier.name];
@@ -479,6 +474,7 @@
             const btn = document.getElementById('refresh-btn');
             btn.style.transform = 'rotate(360deg)';
             setTimeout(() => btn.style.transform = '', 500);
+            
             let sheetKey = (currentMode === 'official') ? 'official' : `${currentMode}_${currentTab}`;
             dataCache[sheetKey] = null;
             loadAll(true);
