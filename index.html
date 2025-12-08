@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Cosmetic Value</title>
+    <title>Wiki Tra Cứu (GVIZ Fix)</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -175,7 +175,7 @@
             obtain_skin: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=2094862161&single=true&output=csv',
             images:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=138903966&single=true&output=csv',
             
-            // Dữ liệu Official (Link View/Edit - Sẽ tự chuyển qua Proxy)
+            // Dữ liệu Official (Link View Only - Link này sẽ được xử lý đặc biệt bằng GVIZ)
             official:    'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=0#gid=0'
         };
 
@@ -260,7 +260,7 @@
             });
         }
 
-        // --- HÀM FETCH ĐÃ ĐỔI PROXY SANG CODETABS ---
+        // --- HÀM FETCH MỚI: SỬ DỤNG GVIZ + CODETABS ---
         async function fetchSheet(key, forceUpdate) {
             let url = SHEET_CONFIG[key];
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
@@ -268,7 +268,6 @@
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
             let fetchUrl = '';
 
-            // Nếu là link OFFICIAL (chưa publish) -> Dùng Proxy CodeTabs
             if (key === 'official') {
                 try {
                     // Tách ID và GID
@@ -278,9 +277,12 @@
                     const gid = gidMatch ? gidMatch[1] : '0';
                     
                     if(sheetId) {
-                        const exportLink = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-                        // Dùng Proxy CodeTabs - Ổn định hơn
-                        fetchUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(exportLink + timeStamp)}`;
+                        // SỬ DỤNG GVIZ API (Thay vì Export) để tránh lỗi "You need access"
+                        // GVIZ trả về CSV sạch sẽ và không cần đăng nhập
+                        const gvizLink = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                        
+                        // Dùng Proxy CodeTabs để tránh CORS
+                        fetchUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizLink + timeStamp)}`;
                     } else {
                         throw new Error("Link Official không đúng định dạng");
                     }
@@ -340,6 +342,7 @@
                 let isHeader = false;
 
                 if (currentMode === 'official') {
+                    // --- LOGIC OFFICIAL ---
                     name = cols[COL_MAP.official.name];
                     col2 = cols[COL_MAP.official.val];    
                     col3 = cols[COL_MAP.official.demand]; 
@@ -369,6 +372,8 @@
                 }
 
                 if (!name) return;
+                // Lọc bỏ rác từ gviz
+                if (name.includes('google.visualization')) return;
                 if (name.toUpperCase() === 'NAME' || name.toUpperCase().includes('VALUE LIST')) return;
 
                 if (isHeader) {
