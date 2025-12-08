@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Tra Cứu Fisch (v8.4 - Debug Mode)</title>
+    <title>Wiki Tra Cứu Fisch (v8.5 - Stable Scraper)</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -186,8 +186,6 @@
             obtain_boat: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=1752951421&single=true&output=csv',
             obtain_skin: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=2094862161&single=true&output=csv',
             images:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=138903966&single=true&output=csv',
-            
-            // Link Official
             official_cosmetic: 'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=0#gid=0',
             official_fish:     'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=1767682450#gid=1767682450'
         };
@@ -222,15 +220,13 @@
         window.addEventListener('resize', updateStickyOffset);
 
         // ==========================================
-        // 2. BACKUP PROXY SYSTEM (DEBUG MODE)
+        // 2. FETCH VỚI ACTION=RENDER (Bypass chặn)
         // ==========================================
         async function fetchTextWithBackup(url) {
+            // QUAN TRỌNG: Thêm action=render để lấy nội dung sạch, nhẹ, tránh bị chặn
+            const cleanUrl = url + (url.includes('?') ? '&' : '?') + 'action=render';
+
             const proxies = [
-                {
-                    name: "CodeTabs",
-                    getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-                    isJson: false
-                },
                 {
                     name: "AllOrigins",
                     getUrl: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
@@ -240,28 +236,33 @@
                     name: "CorsProxy",
                     getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
                     isJson: false
+                },
+                {
+                    name: "CodeTabs",
+                    getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+                    isJson: false
                 }
             ];
 
-            let lastError = null;
-
             for (let proxy of proxies) {
                 try {
-                    const fetchUrl = proxy.getUrl(url);
-                    console.log(`[Proxy] Trying: ${proxy.name} -> ${fetchUrl}`); // --- LOG BẬT ---
-                    
-                    const res = await fetch(fetchUrl);
+                    console.log(`[Proxy] Trying: ${proxy.name} -> ${proxy.getUrl(cleanUrl)}`);
+                    const res = await fetch(proxy.getUrl(cleanUrl));
                     if (!res.ok) throw new Error(`Status ${res.status}`);
                     
+                    let content = "";
                     if (proxy.isJson) {
                         const data = await res.json();
-                        return data.contents;
+                        content = data.contents;
                     } else {
-                        return await res.text();
+                        content = await res.text();
                     }
+                    
+                    if (content.length < 500) throw new Error("Blocked/Short content");
+                    
+                    return content;
                 } catch (e) {
-                    console.warn(`[Proxy] ${proxy.name} failed:`, e.message); // --- LOG BẬT ---
-                    lastError = e;
+                    console.warn(`[Proxy] ${proxy.name} failed:`, e.message);
                     continue; 
                 }
             }
@@ -339,7 +340,6 @@
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
 
-            // Xử lý link Official
             if (key.includes('official')) {
                 try {
                     const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
@@ -348,11 +348,12 @@
                     const gid = gidMatch ? gidMatch[1] : '0';
                     if(sheetId) {
                         const gvizLink = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                        // Sử dụng Backup Proxy cho Sheet để đảm bảo không bị chặn
                         try {
-                            return await fetchTextWithBackup(gvizLink + timeStamp);
-                        } catch(e) { throw e; }
-                    } else { throw new Error("Link Official lỗi"); }
+                            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizLink + timeStamp)}`;
+                            const res = await fetch(proxyUrl);
+                            if(res.ok) return await res.text();
+                        } catch(e) {}
+                    }
                 } catch(e) { return null; }
             } 
             
@@ -460,53 +461,27 @@
         }
 
         // ==========================================
-        // 3. AUTO-SCRAPER (DEBUG ENABLED)
+        // 3. LOGIC PARSER CHÍNH XÁC
         // ==========================================
-        
-        function findValueByKeyword(doc, keyword) {
-            // Priority 1: Custom Class of Fisch Wiki (.data-heading / .data-content)
-            try {
-                const headings = doc.querySelectorAll('.data-heading');
-                for (let h of headings) {
-                    if (h.textContent.toLowerCase().includes(keyword)) {
-                        const content = h.parentElement.querySelector('.data-content');
+        function getFischStats(doc, label) {
+            // Target: <p class="data-heading">Label</p> <ul class="data-content">Value</ul>
+            const headings = doc.querySelectorAll('.data-heading, .pi-data-label');
+            
+            for (let h of headings) {
+                if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) {
+                    // Kiểm tra thẻ em ruột (nextElementSibling)
+                    let sibling = h.nextElementSibling;
+                    if (sibling && (sibling.classList.contains('data-content') || sibling.classList.contains('pi-data-value'))) {
+                         return sibling.textContent.trim();
+                    }
+                    // Kiểm tra thẻ cha (fallback)
+                    let parent = h.parentElement; 
+                    if (parent) {
+                        let content = parent.querySelector('.data-content, .pi-data-value');
                         if (content) return content.textContent.trim();
                     }
                 }
-            } catch (e) {}
-
-            // Priority 2: Fandom Standard (.pi-data-label / .pi-data-value)
-            try {
-                const labels = doc.querySelectorAll('.pi-data-label');
-                for (let l of labels) {
-                    if (l.textContent.toLowerCase().includes(keyword)) {
-                        const val = l.nextElementSibling || l.parentElement.querySelector('.pi-data-value');
-                        if (val) return val.textContent.trim();
-                    }
-                }
-            } catch (e) {}
-
-            // Priority 3: Blind XPath Search
-            try {
-                const xpath = `//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${keyword}')]`;
-                const iterator = doc.evaluate(xpath, doc, null, XPathResult.ANY_TYPE, null);
-                let node = iterator.iterateNext();
-                
-                while (node) {
-                    if (node.textContent.length < 50) { 
-                        let parentText = node.parentElement.textContent.replace(/\s+/g, ' ').trim();
-                        // Regex tìm số (vd: Speed: 80 hoặc 30°)
-                        let regex = new RegExp(`${keyword}[:\\s]+([0-9.]+\\s?[a-zA-Z°/%]*)`, 'i');
-                        let match = parentText.match(regex);
-                        if (match) return match[1];
-                        
-                        let sibling = node.nextElementSibling || node.parentElement.nextElementSibling;
-                        if (sibling) return sibling.textContent.trim();
-                    }
-                    node = iterator.iterateNext();
-                }
-            } catch (e) { console.log("XPath logic error", e); }
-
+            }
             return '?';
         }
 
@@ -521,13 +496,11 @@
             modal.classList.add('open');
             title.innerText = data.nameDisplay;
 
-            // Nếu chưa fetch hoặc lần trước bị lỗi, fetch lại
             if ((!data.fetched || (data.stats && data.stats.speed === 'Error')) && data.wikiLink) {
                 modalBody.innerHTML = `
                     <div class="modal-loading">
                         <div class="spinner"></div>
-                        <div>Đang kết nối Wiki...</div>
-                        <small style="font-size:0.8em; opacity:0.7">Sử dụng Auto-Scraper v8.4 (Check Console)</small>
+                        <div>Đang tải từ Wiki...</div>
                     </div>`;
                 await scrapeWikiData(itemKey, data.wikiLink);
             }
@@ -536,28 +509,27 @@
 
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
-                console.log(`[Scraper] Starting: ${wikiUrl}`); // --- LOG BẬT ---
+                console.log(`[Scraper] Starting: ${wikiUrl}`);
                 const html = await fetchTextWithBackup(wikiUrl);
-                console.log(`[Scraper] HTML Received (${html.length} chars)`); // --- LOG BẬT ---
-                
+                console.log(`[Scraper] HTML Received (${html.length} chars)`); 
+
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 
                 const stats = {
-                    speed: findValueByKeyword(doc, 'speed'),
-                    turn:  findValueByKeyword(doc, 'steering') === '?' ? findValueByKeyword(doc, 'turn') : findValueByKeyword(doc, 'steering'),
-                    accel: findValueByKeyword(doc, 'acceleration'),
-                    seat:  findValueByKeyword(doc, 'seats') === '?' ? findValueByKeyword(doc, 'seat') : findValueByKeyword(doc, 'seats')
+                    speed: getFischStats(doc, 'Speed'),
+                    turn:  getFischStats(doc, 'Steering'),
+                    accel: getFischStats(doc, 'Acceleration'),
+                    seat:  getFischStats(doc, 'Seats')
                 };
                 
-                console.log("[Scraper] Stats Found:", stats); // --- LOG BẬT ---
+                console.log("[Scraper] Stats Found:", stats);
 
                 let imgGame = null, imgMenu = null;
-                const mainImg = doc.querySelector('.infobox-image img') || doc.querySelector('.pi-image-thumbnail');
+                const mainImg = doc.querySelector('.infobox-image img, .pi-image-thumbnail');
                 if (mainImg) {
                     imgMenu = mainImg.getAttribute('src') || mainImg.getAttribute('data-src');
                 }
-
                 const galleryImgs = doc.querySelectorAll('.wikia-gallery-item .thumbimage, .gallerybox img');
                 galleryImgs.forEach(img => {
                     const src = img.getAttribute('data-src') || img.getAttribute('src');
@@ -576,7 +548,7 @@
                 imageCache[itemKey].fetched = true;
 
             } catch (err) {
-                console.error("[Scraper] Error:", err); // --- LOG ERROR ---
+                console.error("[Scraper] Error:", err);
                 imageCache[itemKey].stats = { speed: 'Error', turn: 'Error', accel: 'Error', seat: 'Error' };
                 imageCache[itemKey].fetched = true;
             }
