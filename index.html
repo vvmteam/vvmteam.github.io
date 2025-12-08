@@ -8,7 +8,7 @@
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
         
-        /* --- 1. THANH CÔNG CỤ (VUA - CAO NHẤT) --- */
+        /* --- 1. THANH CÔNG CỤ --- */
         #sticky-wrapper {
             position: sticky; top: 0; 
             z-index: 10000; 
@@ -55,7 +55,7 @@
             min-height: 300px; padding-bottom: 30px; overflow: visible; 
         }
 
-        /* --- 2. HEADER TIER (QUAN) --- */
+        /* --- 2. HEADER TIER --- */
         .tier-header { 
             background: #dfe6e9; color: #2d3436; font-weight: 900; 
             text-align: center; padding: 10px; font-size: 1.2em; 
@@ -66,7 +66,7 @@
 
         .row { display: flex; padding: 15px 25px; border-bottom: 1px solid #f1f2f6; align-items: center; transition: 0.2s; background: white; }
         
-        /* --- 3. HÀNG KHI HOVER (TƯỚNG) --- */
+        /* --- 3. HÀNG KHI HOVER --- */
         .row:hover { 
             background-color: #f8f9fa; 
             position: relative; 
@@ -116,10 +116,10 @@
             box-shadow: 0 5px 15px rgba(214, 48, 49, 0.4); display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- 5. FOOTER (MỚI THÊM) --- */
+        /* --- 5. FOOTER --- */
         .site-footer {
             text-align: center;
-            padding: 40px 20px 80px 20px; /* Padding bottom 80px để tạo khoảng trống lớn */
+            padding: 40px 20px 80px 20px; 
             color: #636e72;
             font-size: 14px;
             margin-top: 30px;
@@ -152,12 +152,12 @@
     <div id="data-container"></div>
 
     <footer class="site-footer">
-        Create and Maintaince by <b>Fuyutya</b> - Last Update: 08/12/2025
+        Create and Maintaince by <b>Fuyutya</b> - Last Update: <span id="last-update">...</span>
     </footer>
 
     <button id="refresh-btn" onclick="forceReload()">↻</button>
 
-    <script>
+<script>
         // ==========================================
         // 1. CẤU HÌNH LIÊN KẾT
         // ==========================================
@@ -173,7 +173,7 @@
             tier:   { name: 0, val: 1, demand: 2 }, 
             obtain_boat: { name: 0, val: 1 },       
             obtain_skin: { name: 0, rod: 1, val: 2 },
-            images: { name: 0, img1: 1, img2: 2 },
+            images: { name: 0, img1: 1, img2: 2, last_update: 8 }, // Thêm cột I (Index 8) cho ngày tháng
             q_flag: 16 
         };
 
@@ -216,8 +216,23 @@
         async function fetchImages(forceUpdate) {
             const csv = await fetchSheet('images', forceUpdate);
             if (!csv) return;
+            
             imageCache = {}; 
             const lines = csv.split('\n');
+            
+            // --- LOGIC MỚI: LẤY NGÀY CẬP NHẬT TỪ Ô I1 ---
+            if (lines.length > 0) {
+                const firstRowCols = splitCSV(lines[0]); // Đọc dòng đầu tiên
+                // Lấy dữ liệu từ cột I (Index 8)
+                const dateVal = firstRowCols[COL_MAP.images.last_update];
+                if (dateVal) {
+                    document.getElementById('last-update').innerText = dateVal;
+                } else {
+                    document.getElementById('last-update').innerText = "Unknown";
+                }
+            }
+            // --------------------------------------------
+
             lines.forEach(line => {
                 const cols = splitCSV(line);
                 const name = cols[COL_MAP.images.name]?.trim();
