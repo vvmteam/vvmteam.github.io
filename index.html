@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Cosmetic Value</title>
+    <title>Fisch Cosmetic Value - Fuyutya</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -175,8 +175,7 @@
             obtain_skin: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=2094862161&single=true&output=csv',
             images:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=138903966&single=true&output=csv',
             
-            // Dữ liệu Official (Link View/Edit - PHẢI QUA PROXY)
-            // Bạn cứ dán link edit bình thường vào đây, code tự xử lý
+            // Dữ liệu Official (Link View/Edit - Sẽ tự chuyển qua Proxy)
             official:    'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=0#gid=0'
         };
 
@@ -184,7 +183,6 @@
             tier:   { name: 0, val: 1, demand: 2 }, 
             obtain_boat: { name: 0, val: 1 },       
             obtain_skin: { name: 0, rod: 1, val: 2 },
-            // Official: Name, Value, Demand, Status
             official: { name: 0, val: 1, demand: 2, status: 3 },
             images: { name: 0, img1: 1, img2: 2, last_update: 8 },
             q_flag: 16 
@@ -225,9 +223,9 @@
             // Ẩn/Hiện Tab con
             const subTabs = document.getElementById('sub-tabs');
             if (currentMode === 'official') {
-                subTabs.style.display = 'none'; // Ẩn Thuyền/Skin
+                subTabs.style.display = 'none'; 
             } else {
-                subTabs.style.display = 'flex'; // Hiện lại
+                subTabs.style.display = 'flex'; 
             }
             setTimeout(updateStickyOffset, 50);
 
@@ -264,7 +262,7 @@
             });
         }
 
-        // --- HÀM FETCH THÔNG MINH (TỰ ĐỘNG CHỌN PROXY CHO LINK OFFICIAL) ---
+        // --- HÀM FETCH MỚI: SỬ DỤNG CORSPROXY.IO ---
         async function fetchSheet(key, forceUpdate) {
             let url = SHEET_CONFIG[key];
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
@@ -272,7 +270,7 @@
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
             let fetchUrl = '';
 
-            // Nếu là link OFFICIAL (chưa publish) -> Dùng Proxy + Convert link Export
+            // Nếu là link OFFICIAL (chưa publish) -> Dùng Proxy corsproxy.io
             if (key === 'official') {
                 try {
                     // Tách ID và GID
@@ -283,8 +281,8 @@
                     
                     if(sheetId) {
                         const exportLink = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-                        // Dùng Proxy AllOrigins
-                        fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(exportLink + timeStamp)}`;
+                        // Dùng Proxy corsproxy.io (Mạnh hơn allorigins)
+                        fetchUrl = `https://corsproxy.io/?` + encodeURIComponent(exportLink + timeStamp);
                     } else {
                         throw new Error("Link Official không đúng định dạng");
                     }
@@ -376,7 +374,6 @@
                 }
 
                 if (!name) return;
-                // Bỏ qua dòng tiêu đề gốc của Excel
                 if (name.toUpperCase() === 'NAME' || name.toUpperCase().includes('VALUE LIST')) return;
 
                 if (isHeader) {
@@ -401,7 +398,6 @@
                         imagesDiv = `<div class="hover-images"></div>`;
                     }
 
-                    // Render HTML có thêm cột 4 cho Official
                     let extraCol = '';
                     if (currentMode === 'official') {
                         extraCol = `<div class="col-status">${col4 || ''}</div>`;
@@ -483,7 +479,6 @@
             const btn = document.getElementById('refresh-btn');
             btn.style.transform = 'rotate(360deg)';
             setTimeout(() => btn.style.transform = '', 500);
-            
             let sheetKey = (currentMode === 'official') ? 'official' : `${currentMode}_${currentTab}`;
             dataCache[sheetKey] = null;
             loadAll(true);
