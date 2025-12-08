@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Tra Cứu</title>
+    <title>Wiki Tra Cứu (Auto Scraper)</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
         
-        /* --- 1. THANH CÔNG CỤ (VUA - CAO NHẤT) --- */
+        /* --- 1. THANH CÔNG CỤ --- */
         #sticky-wrapper {
             position: sticky; top: 0; z-index: 10000; 
             background: rgba(235, 237, 239, 0.95); backdrop-filter: blur(10px); 
@@ -34,13 +34,9 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 14px;
         }
         button:hover { background-color: #f1f2f6; transform: translateY(-2px); }
-        
-        /* Màu nút */
         button.mode-btn.active { background: linear-gradient(135deg, #0984e3, #74b9ff); color: white; }
         button.tab-btn.active { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; }
-        /* Màu nút Official đặc biệt */
         button#mode-official.active { background: linear-gradient(135deg, #e17055, #ff7675); color: white; box-shadow: 0 4px 15px rgba(225, 112, 85, 0.4); }
-        #tabs-official button.tab-btn.active { background: linear-gradient(135deg, #e17055, #ff7675); }
 
         .column-headers {
             max-width: 900px; margin: 10px auto 0; display: flex;
@@ -97,21 +93,33 @@
             background: white; width: 90%; max-width: 800px; border-radius: 16px;
             box-shadow: 0 25px 50px rgba(0,0,0,0.5); overflow: hidden;
             display: flex; flex-direction: column; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-height: 90vh; /* Giới hạn chiều cao */
         }
         .modal-overlay.open .modal-content { transform: scale(1); }
         .modal-header { padding: 15px 20px; background: #2d3436; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .close-modal-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        .modal-body { display: flex; padding: 20px; gap: 20px; }
+        
+        .modal-body { display: flex; padding: 20px; gap: 20px; overflow-y: auto; }
         .modal-left { flex: 1.5; display: flex; flex-direction: column; gap: 10px; }
         .modal-right { flex: 1; border-left: 1px solid #eee; padding-left: 20px; }
+        
         .modal-title { font-size: 1.2em; font-weight: 800; color: #2d3436; margin-bottom: 15px; border-bottom: 2px solid #0984e3; padding-bottom: 5px; display: inline-block; }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1em; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1em; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
         .stat-label { color: #636e72; font-weight: 600; }
         .stat-value { font-weight: 700; color: #2d3436; font-family: 'Consolas', monospace; }
+
+        /* Loading Spinner trong Modal */
+        .modal-loading { text-align: center; padding: 50px; font-size: 1.2em; color: #636e72; width: 100%; }
+        .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: #0984e3; animation: spin 1s ease-in-out infinite; margin-bottom: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         @media (max-width: 700px) { .modal-body { flex-direction: column; } .modal-right { border-left: none; border-top: 1px solid #eee; padding-left: 0; padding-top: 20px; } }
 
-        .img-box { width: 100%; aspect-ratio: 16 / 9; background-color: #f8f9fa; border-radius: 12px; overflow: hidden; border: 1px solid #e9ecef; display: flex; justify-content: center; align-items: center; }
+        .img-box { width: 100%; aspect-ratio: 16 / 9; background-color: #f8f9fa; border-radius: 12px; overflow: hidden; border: 1px solid #e9ecef; display: flex; justify-content: center; align-items: center; position: relative; }
         .img-box img { width: 100%; height: 100%; object-fit: contain; }
+        /* Label cho ảnh trong modal */
+        .img-label { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #refresh-btn { position: fixed; bottom: 30px; right: 30px; z-index: 9999; width: 50px; height: 50px; border-radius: 50%; background: #d63031; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(214, 48, 49, 0.4); display: flex; align-items: center; justify-content: center; }
         .site-footer { text-align: center; padding: 40px 20px 80px 20px; color: #636e72; font-size: 14px; margin-top: 30px; border-top: 1px solid #dfe6e9; background-color: #ebedef; }
@@ -129,12 +137,10 @@
                     <div class="separator"></div>
                     <button id="mode-official" class="mode-btn" onclick="switchMode('official')">Official Value</button>
                 </div>
-                
-                <div class="btn-row" id="tabs-standard">
+                <div class="btn-row" id="sub-tabs">
                     <button id="tab-boat" class="tab-btn active" onclick="switchTab('boat')">Thuyền</button>
                     <button id="tab-skin" class="tab-btn" onclick="switchTab('skin')">Skin</button>
                 </div>
-
                 <div class="btn-row" id="tabs-official" style="display: none;">
                     <button id="tab-cosmetic" class="tab-btn active" onclick="switchTab('cosmetic')">Cosmetic</button>
                     <button id="tab-fish" class="tab-btn" onclick="switchTab('fish')">Fish</button>
@@ -155,16 +161,11 @@
     <div id="info-modal" class="modal-overlay" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
-                <span id="modal-item-name">Item</span>
+                <span id="modal-item-name">Item Name</span>
                 <button class="close-modal-btn" onclick="closeModal()">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="modal-left" id="modal-images-container"></div>
-                <div class="modal-right">
-                    <div class="modal-title">Thông số</div>
-                    <div id="modal-stats-container"></div>
+            <div class="modal-body" id="modal-body-content">
                 </div>
-            </div>
         </div>
     </div>
 
@@ -173,16 +174,13 @@
         // 1. CẤU HÌNH LIÊN KẾT
         // ==========================================
         const SHEET_CONFIG = {
-            // Tier
             tier_boat:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=0&single=true&output=csv',
             tier_skin:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=701267659&single=true&output=csv',
-            // Obtain
             obtain_boat: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=1752951421&single=true&output=csv',
             obtain_skin: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=2094862161&single=true&output=csv',
-            // Images
             images:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=138903966&single=true&output=csv',
             
-            // Official (View Only)
+            // Link Official
             official_cosmetic: 'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=0#gid=0',
             official_fish:     'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=1767682450#gid=1767682450'
         };
@@ -192,19 +190,20 @@
             obtain_boat: { name: 0, val: 1 },       
             obtain_skin: { name: 0, rod: 1, val: 2 },
             official: { name: 0, val: 1, demand: 2, status: 3 },
-            images: { name: 0, img1: 1, img2: 2, flag: 7, speed: 8, turn: 9, accel: 10, seat: 11, last_update: 8 }, 
+            
+            // SHEET IMAGES: CỘT G (Index 6) LÀ LINK WIKI
+            // Cột Flag là H (Index 7)
+            images: { name: 0, img1: 1, img2: 2, wiki: 6, flag: 7, last_update: 8 }, 
             q_flag: 16 
         };
 
         let currentMode = 'tier';
         let currentTab  = 'boat';
-        let imageCache = {}; 
+        let imageCache = {}; // Cache chứa: { urls: [], wikiLink: '...', isBoat: bool, stats: {}, fetched: bool }
         let dataCache = {};    
 
-        // --- HÀM CHUẨN HÓA KEY (FIX LỖI DẤU NHÁY) ---
         function normalizeKey(str) {
             if (!str) return "";
-            // Chuyển về chữ hoa, xóa khoảng trắng thừa, thay dấu nháy cong/huyền thành nháy thẳng
             return str.trim().toUpperCase().replace(/[‘’`]/g, "'");
         }
 
@@ -265,21 +264,18 @@
                 if (name) {
                     const img1 = cols[COL_MAP.images.img1]?.trim();
                     const img2 = cols[COL_MAP.images.img2]?.trim();
+                    const wiki = cols[COL_MAP.images.wiki]?.trim(); // Lấy Link Wiki
                     const flag = cols[COL_MAP.images.flag]?.trim().toLowerCase();
                     
-                    // SỬ DỤNG NORMALIZE KEY KHI LƯU
                     const key = normalizeKey(name);
                     
                     imageCache[key] = {
-                        nameDisplay: name, // Lưu tên gốc để hiển thị cho đẹp
-                        urls: [img1, img2].filter(url => url && url.length > 5),
+                        nameDisplay: name,
+                        urls: [img1, img2].filter(url => url && url.length > 5), // Ảnh mặc định (nếu có)
+                        wikiLink: wiki,
                         isBoat: (flag && flag.includes('boat')),
-                        stats: {
-                            speed: cols[COL_MAP.images.speed],
-                            turn: cols[COL_MAP.images.turn],
-                            accel: cols[COL_MAP.images.accel],
-                            seat: cols[COL_MAP.images.seat]
-                        }
+                        stats: null, // Chưa có stats, sẽ cào sau
+                        fetched: false // Đánh dấu chưa cào
                     };
                 }
             });
@@ -376,15 +372,15 @@
                     row.setAttribute('data-parent-tier', currentTierName);
 
                     let interactionHtml = '';
-                    // SỬ DỤNG NORMALIZE KEY KHI TÌM
                     const key = normalizeKey(name);
                     const itemData = imageCache[key];
                     
                     if (itemData) {
-                        if (itemData.isBoat) {
-                            // Gửi key chuẩn hóa vào hàm openModal
+                        if (itemData.isBoat && itemData.wikiLink) {
+                            // BOAT có Link Wiki -> Mở Modal và Cào dữ liệu
                             interactionHtml = `<span class="hover-wrapper click-trigger" onclick="openModal('${key.replace(/'/g, "\\'")}')">${name}</span>`;
                         } else if (itemData.urls.length > 0) {
+                            // SKIN/OTHER -> Hover ảnh tĩnh
                             const imgsJson = JSON.stringify(itemData.urls).replace(/"/g, '&quot;');
                             interactionHtml = `
                                 <span class="hover-wrapper hover-trigger" onmouseenter="lazyLoadImg(this)" onmouseleave="hideImg(this)" data-imgs="${imgsJson}">
@@ -410,28 +406,187 @@
             updateStickyOffset();
         }
 
-        function openModal(itemKey) {
+        // ===============================================
+        // LOGIC MỚI: SCRAPE WIKI DATA KHI MỞ MODAL
+        // ===============================================
+        async function openModal(itemKey) {
             const modal = document.getElementById('info-modal');
-            const data = imageCache[itemKey]; // Tìm bằng Key đã chuẩn hóa
+            const modalBody = document.getElementById('modal-body-content');
+            const title = document.getElementById('modal-item-name');
+            const data = imageCache[itemKey]; 
+            
             if (!data) return;
             
-            // Hiển thị tên gốc cho đẹp
-            document.getElementById('modal-item-name').innerText = data.nameDisplay;
-            
-            const imgContainer = document.getElementById('modal-images-container');
-            let imgHtml = '';
-            data.urls.forEach(url => { imgHtml += `<div class="img-box"><img src="${url}"></div>`; });
-            imgContainer.innerHTML = imgHtml;
-            const statsContainer = document.getElementById('modal-stats-container');
-            const s = data.stats;
-            statsContainer.innerHTML = `
-                <div class="stat-row"><span class="stat-label">Speed:</span> <span class="stat-value">${s.speed || '?'} S/ps</span></div>
-                <div class="stat-row"><span class="stat-label">Steering:</span> <span class="stat-value">${s.turn || '?'}°</span></div>
-                <div class="stat-row"><span class="stat-label">Acceleration:</span> <span class="stat-value">${s.accel || '?'} S/ps</span></div>
-                <div class="stat-row"><span class="stat-label">Seat:</span> <span class="stat-value">${s.seat || '?'}</span></div>
-            `;
             modal.classList.add('open');
+            title.innerText = data.nameDisplay;
+
+            // Nếu chưa Cào dữ liệu -> Hiển thị Loading và bắt đầu Cào
+            if (!data.fetched && data.wikiLink) {
+                modalBody.innerHTML = `
+                    <div class="modal-loading">
+                        <div class="spinner"></div>
+                        <div>Đang tải dữ liệu từ Wiki...</div>
+                        <small style="font-size:0.8em; opacity:0.7">${data.wikiLink}</small>
+                    </div>`;
+                
+                // GỌI HÀM CÀO DỮ LIỆU
+                await scrapeWikiData(itemKey, data.wikiLink);
+            }
+
+            // Sau khi cào xong (hoặc đã có dữ liệu), Render Modal
+            renderModalContent(itemKey);
         }
+
+        async function scrapeWikiData(itemKey, wikiUrl) {
+            try {
+                // Dùng Proxy để lấy HTML của trang Wiki
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(wikiUrl)}`;
+                const res = await fetch(proxyUrl);
+                if (!res.ok) throw new Error("Không thể truy cập Wiki");
+                const html = await res.text();
+
+                // Phân tích HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // 1. LẤY STATS (Tìm trong bảng Infobox hoặc Stats)
+                // Tìm kiếm text trong toàn bộ body
+                const bodyText = doc.body.innerText || "";
+                
+                // Helper để tìm giá trị sau label
+                const findStat = (label) => {
+                    // Regex tìm: Label ... : ... Giá trị (hỗ trợ xuống dòng)
+                    // Ví dụ: Speed \n 80 s/ps
+                    const regex = new RegExp(`${label}[\\s\\S]*?([0-9.]+[\\s]*[A-Za-z/°]+|[0-9]+)`, 'i');
+                    // Cách đơn giản hơn: Tìm phần tử chứa text
+                    const elements = Array.from(doc.querySelectorAll('td, th, div, b, span'));
+                    for (let el of elements) {
+                        if (el.textContent.trim().startsWith(label) || el.textContent.trim() === label) {
+                            // Thử tìm trong node kế tiếp hoặc cha
+                            let val = el.nextElementSibling?.textContent.trim();
+                            if (!val && el.parentElement.nextElementSibling) val = el.parentElement.nextElementSibling.textContent.trim(); // Table layout
+                            if (val) return val;
+                        }
+                    }
+                    return "?";
+                };
+
+                // Logic cào cụ thể cho Fischipedia (dựa trên cấu trúc thường thấy)
+                // Tìm bảng có chứa stats
+                let speed = '?', turn = '?', accel = '?', seat = '?';
+                
+                // Cách cào "mù" dựa trên text content (chậm nhưng bao quát)
+                // Hoặc tìm theo class cụ thể nếu biết (ví dụ .portable-infobox)
+                const infoBox = doc.querySelector('aside.portable-infobox') || doc.body;
+                
+                // Cải tiến: Tìm thẻ chứa chữ "Speed", sau đó lấy số
+                const extractValue = (keyword) => {
+                    const xpath = `//*[contains(text(),'${keyword}')]`;
+                    const result = doc.evaluate(xpath, infoBox, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                    const node = result.singleNodeValue;
+                    if (node) {
+                        // Thử lấy text của node tiếp theo hoặc parent
+                        let raw = node.nextSibling?.textContent || node.parentElement?.nextElementSibling?.textContent || node.textContent;
+                        // Lọc lấy số và đơn vị
+                        let match = raw.match(/([0-9.]+\s?[A-Za-z/°]+)/);
+                        if (match) return match[1];
+                        // Nếu vẫn không thấy, tìm sâu hơn
+                        match = node.parentElement.textContent.match(new RegExp(`${keyword}[:\\s]+([0-9.]+\\s?[^\\n]+)`, 'i'));
+                        if (match) return match[1].trim();
+                    }
+                    return "?";
+                };
+
+                speed = extractValue('Speed');
+                turn = extractValue('Steering');
+                accel = extractValue('Acceleration');
+                seat = extractValue('Seats'); // Có thể là "Passenger Seats"
+
+                // 2. LẤY ẢNH (In-game & Menu)
+                // Tìm ảnh trong Gallery
+                const images = Array.from(doc.querySelectorAll('img'));
+                let imgGame = "", imgMenu = "";
+
+                // Tìm ảnh có caption liên quan
+                // (Giả định cấu trúc gallery wiki media)
+                const galleryItems = doc.querySelectorAll('.wikia-gallery-item, .gallerybox');
+                galleryItems.forEach(item => {
+                    const txt = item.textContent.toLowerCase();
+                    const img = item.querySelector('img');
+                    if (img) {
+                        let src = img.getAttribute('data-src') || img.src;
+                        // Fix link ảnh wiki thường là thumbnail
+                        if (src) {
+                            // Lấy link gốc (bỏ phần /revision/...)
+                            // src = src.split('/revision')[0]; 
+                            if (txt.includes('in-game') || txt.includes('game')) imgGame = src;
+                            if (txt.includes('shipwright') || txt.includes('menu')) imgMenu = src;
+                        }
+                    }
+                });
+
+                // Nếu không tìm thấy trong gallery, tìm trong infobox (ảnh chính)
+                if (!imgMenu) {
+                    const mainImg = doc.querySelector('aside.portable-infobox img');
+                    if (mainImg) imgMenu = mainImg.getAttribute('data-src') || mainImg.src;
+                }
+
+                // Cập nhật Cache
+                imageCache[itemKey].stats = { speed, turn, accel, seat };
+                // Chỉ cập nhật ảnh nếu tìm thấy (ưu tiên ảnh cũ trong sheet nếu wiki lỗi)
+                if (imgGame || imgMenu) {
+                    imageCache[itemKey].urls = [imgGame, imgMenu].filter(u => u); 
+                }
+                imageCache[itemKey].fetched = true;
+
+            } catch (err) {
+                console.error("Scrape Error:", err);
+                // Đánh dấu đã fetch (dù lỗi) để không fetch lại liên tục
+                imageCache[itemKey].fetched = true;
+            }
+        }
+
+        function renderModalContent(itemKey) {
+            const data = imageCache[itemKey];
+            const modalBody = document.getElementById('modal-body-content');
+            
+            if (!data) return;
+
+            let imgHtml = '';
+            if (data.urls && data.urls.length > 0) {
+                data.urls.forEach((url, index) => { 
+                    let label = index === 0 ? "In-Game" : "Menu"; // Label giả định
+                    imgHtml += `
+                    <div class="img-box">
+                        <img src="${url}" onerror="this.src='https://via.placeholder.com/300?text=No+Image'">
+                        <span class="img-label">${label}</span>
+                    </div>`; 
+                });
+            } else {
+                imgHtml = '<div style="text-align:center; padding:20px; color:#999">Không tìm thấy hình ảnh</div>';
+            }
+
+            const s = data.stats || {}; // Nếu chưa có stats thì hiện ?
+
+            modalBody.innerHTML = `
+                <div class="modal-left" id="modal-images-container">
+                    ${imgHtml}
+                </div>
+                <div class="modal-right">
+                    <div class="modal-title">Thông số (Wiki)</div>
+                    <div id="modal-stats-container">
+                        <div class="stat-row"><span class="stat-label">Speed:</span> <span class="stat-value">${s.speed || '?'}</span></div>
+                        <div class="stat-row"><span class="stat-label">Steering:</span> <span class="stat-value">${s.turn || '?'}</span></div>
+                        <div class="stat-row"><span class="stat-label">Acceleration:</span> <span class="stat-value">${s.accel || '?'}</span></div>
+                        <div class="stat-row"><span class="stat-label">Seats:</span> <span class="stat-value">${s.seat || '?'}</span></div>
+                        <div style="margin-top:20px; font-size:0.8em; color:#999; text-align:right">
+                            Nguồn: <a href="${data.wikiLink}" target="_blank" style="color:#0984e3">Fischipedia</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function closeModal(event) { document.getElementById('info-modal').classList.remove('open'); }
 
         window.lazyLoadImg = function(el) {
@@ -461,14 +616,11 @@
         function switchMode(mode) {
             currentMode = mode;
             if (mode === 'official') { currentTab = 'cosmetic'; } else { currentTab = 'boat'; }
-            
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('mode-' + mode).classList.add('active');
-            
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             const tabBtn = document.getElementById('tab-' + currentTab);
             if(tabBtn) tabBtn.classList.add('active');
-
             loadAll(false);
             window.scrollTo(0, 0); 
         }
