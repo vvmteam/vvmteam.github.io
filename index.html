@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Item Value</title>
+    <title>Fisch Cosmetic Value</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
         
-        /* --- 1. THANH CÔNG CỤ (STICKY WRAPPER) --- */
-        /* Mức ưu tiên: 10000 - Đè lên nội dung khi cuộn */
+        /* --- 1. THANH CÔNG CỤ (VUA - CAO NHẤT) --- */
         #sticky-wrapper {
             position: sticky; top: 0; 
             z-index: 10000; 
@@ -56,8 +55,7 @@
             min-height: 300px; padding-bottom: 30px; overflow: visible; 
         }
 
-        /* --- 2. HEADER TIER --- */
-        /* Mức ưu tiên: 1000 - Thấp hơn thanh công cụ */
+        /* --- 2. HEADER TIER (QUAN) --- */
         .tier-header { 
             background: #dfe6e9; color: #2d3436; font-weight: 900; 
             text-align: center; padding: 10px; font-size: 1.2em; 
@@ -68,8 +66,8 @@
 
         .row { display: flex; padding: 15px 25px; border-bottom: 1px solid #f1f2f6; align-items: center; transition: 0.2s; background: white; }
         
-        /* --- 3. HÀNG KHI HOVER --- */
-        /* Mức ưu tiên: 5000 - Đè lên Tier Header nhưng nằm dưới Sticky Wrapper */
+        /* --- 3. HÀNG KHI HOVER (TƯỚNG) --- */
+        /* Z-Index 5000: Cao hơn Header Tier nhưng thấp hơn Wrapper */
         .row:hover { 
             background-color: #f8f9fa; 
             position: relative; 
@@ -81,19 +79,18 @@
         .col-mid  { flex: 1; text-align: center; color: #636e72; font-weight: 600; } 
         .col-end  { flex: 0.8; text-align: right; font-weight: 800; color: #e17055; } 
 
-        /* --- 4. POPUP ẢNH --- */
-        /* Mức ưu tiên: 11000 - CAO NHẤT (Hơn cả Sticky Wrapper) */
+        /* --- 4. POPUP ẢNH (FIXED - CAO NHẤT) --- */
         .hover-wrapper { position: relative; display: inline-block; }
         
         .hover-images {
             display: none; 
             position: fixed; /* Bay tự do */
-            z-index: 11000;  /* Vua của các vị Vua */
+            z-index: 11000;  /* Cao hơn cả Wrapper */
             
-            background: white; padding: 20px; border-radius: 16px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.08);
+            background: white; padding: 15px; border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.08);
             animation: fadeIn 0.2s ease-out;
-            gap: 20px; max-width: 90vw;
+            gap: 15px; 
             pointer-events: none; 
         }
 
@@ -104,8 +101,18 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .hover-images.single-img { grid-template-columns: 1fr; min-width: 300px; }
-        .hover-images.double-img { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); min-width: 350px; }
+        /* === ĐÃ CHỈNH SỬA KÍCH THƯỚC GỌN GÀNG HƠN === */
+        /* Trường hợp 1 ảnh: Rộng 280px */
+        .hover-images.single-img { 
+            grid-template-columns: 1fr; 
+            width: 280px; 
+        }
+        /* Trường hợp 2 ảnh: Rộng 500px, chia đôi */
+        .hover-images.double-img { 
+            grid-template-columns: 1fr 1fr; 
+            width: 500px; 
+        }
+        /* ============================================= */
 
         .img-box {
             width: 100%; aspect-ratio: 16 / 9; 
@@ -220,9 +227,7 @@
         async function fetchSheet(key, forceUpdate) {
             const url = SHEET_CONFIG[key];
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
-            
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
-            
             try {
                 const res = await fetch(url + timeStamp);
                 if (!res.ok) throw new Error("Lỗi kết nối Server");
