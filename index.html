@@ -3,128 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Tra Cứu Fisch (v9.3 - Fischipedia Core)</title>
+    <title>Wiki Fisch (v11.0 - CorsFix Test)</title>
     <style>
-        /* --- CẤU HÌNH CƠ BẢN --- */
+        /* --- CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
-        
-        /* --- 1. THANH CÔNG CỤ --- */
-        #sticky-wrapper {
-            position: sticky; top: 0; z-index: 10000; 
-            background: rgba(235, 237, 239, 0.95); backdrop-filter: blur(10px); 
-            padding-top: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: all 0.2s;
-        }
+        #sticky-wrapper { position: sticky; top: 0; z-index: 10000; background: rgba(235, 237, 239, 0.95); backdrop-filter: blur(10px); padding-top: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: all 0.2s; }
         .controls { text-align: center; margin-bottom: 10px; padding: 0 20px; }
-        
-        input[type="text"] { 
-            padding: 10px 25px; width: 100%; max-width: 450px; 
-            border-radius: 50px; border: 2px solid #dfe6e9; 
-            outline: none; font-size: 16px; transition: 0.3s; background: white; margin-bottom: 10px;
-        }
+        input[type="text"] { padding: 10px 25px; width: 100%; max-width: 450px; border-radius: 50px; border: 2px solid #dfe6e9; outline: none; font-size: 16px; transition: 0.3s; background: white; margin-bottom: 10px; }
         input[type="text"]:focus { border-color: #74b9ff; box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3); }
-
         .filter-section { display: flex; flex-direction: column; gap: 8px; align-items: center; }
         .btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
         .separator { width: 1px; height: 24px; background-color: #b2bec3; margin: 0 5px; }
-
-        button { 
-            padding: 8px 20px; cursor: pointer; border: none; 
-            background: white; border-radius: 20px; 
-            font-weight: 600; color: #636e72; transition: 0.2s; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 14px;
-        }
+        button { padding: 8px 20px; cursor: pointer; border: none; background: white; border-radius: 20px; font-weight: 600; color: #636e72; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 14px; }
         button:hover { background-color: #f1f2f6; transform: translateY(-2px); }
         button.mode-btn.active { background: linear-gradient(135deg, #0984e3, #74b9ff); color: white; }
         button.tab-btn.active { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; }
-        button#mode-official.active { background: linear-gradient(135deg, #e17055, #ff7675); color: white; box-shadow: 0 4px 15px rgba(225, 112, 85, 0.4); }
-
-        .column-headers {
-            max-width: 900px; margin: 10px auto 0; display: flex;
-            background: #2d3436; color: #ecf0f1; font-weight: 800;
-            padding: 12px 25px; border-radius: 12px 12px 0 0;
-            font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
-        }
-
-        /* --- PHẦN DỮ LIỆU --- */
-        #data-container { 
-            max-width: 900px; margin: 0 auto; background: white; 
-            border-radius: 0 0 16px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); 
-            min-height: 300px; padding-bottom: 30px; overflow: visible; 
-        }
-
-        .tier-header { 
-            background: #dfe6e9; color: #2d3436; font-weight: 900; 
-            text-align: center; padding: 10px; font-size: 1.2em; 
-            border-bottom: 2px solid #b2bec3; border-top: 1px solid #fff; box-shadow: none;
-            position: sticky; top: var(--header-offset, 180px); z-index: 1000; 
-        }
-
+        .column-headers { max-width: 900px; margin: 10px auto 0; display: flex; background: #2d3436; color: #ecf0f1; font-weight: 800; padding: 12px 25px; border-radius: 12px 12px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+        #data-container { max-width: 900px; margin: 0 auto; background: white; border-radius: 0 0 16px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); min-height: 300px; padding-bottom: 30px; overflow: visible; }
+        .tier-header { background: #dfe6e9; color: #2d3436; font-weight: 900; text-align: center; padding: 10px; font-size: 1.2em; border-bottom: 2px solid #b2bec3; border-top: 1px solid #fff; box-shadow: none; position: sticky; top: var(--header-offset, 180px); z-index: 1000; }
         .row { display: flex; padding: 15px 25px; border-bottom: 1px solid #f1f2f6; align-items: center; transition: 0.2s; background: white; }
         .row:hover { background-color: #f8f9fa; position: relative; z-index: 5000; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
         .col-name { flex: 2; font-weight: 700; color: #2d3436; position: relative; }
-        .col-mid  { flex: 1; text-align: center; color: #636e72; font-weight: 600; } 
-        .col-end  { flex: 0.8; text-align: right; font-weight: 800; color: #e17055; }
+        .col-mid { flex: 1; text-align: center; color: #636e72; font-weight: 600; }
+        .col-end { flex: 0.8; text-align: right; font-weight: 800; color: #e17055; }
         .col-status { flex: 0.8; text-align: center; font-weight: 700; color: #00b894; font-size: 0.9em; }
-
         .click-trigger { cursor: pointer; color: #0984e3; text-decoration: underline; text-decoration-style: dotted; }
         .click-trigger:hover { color: #d63031; }
         .hover-trigger { cursor: help; }
-
-        /* --- POPUP ẢNH --- */
         .hover-wrapper { position: relative; display: inline-block; }
-        .hover-images {
-            display: none; position: fixed; z-index: 11000;  
-            background: white; padding: 15px; border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.08);
-            animation: fadeIn 0.2s ease-out; gap: 15px; pointer-events: none; 
-        }
+        .hover-images { display: none; position: fixed; z-index: 11000; background: white; padding: 15px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.08); animation: fadeIn 0.2s ease-out; gap: 15px; pointer-events: none; }
         .hover-images.active { display: grid; }
         .hover-images.single-img { grid-template-columns: 1fr; width: 280px; }
         .hover-images.double-img { grid-template-columns: 1fr 1fr; width: 500px; }
-
-        /* --- MODAL --- */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5); z-index: 20000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;
-        }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 20000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
         .modal-overlay.open { display: flex; opacity: 1; }
-        .modal-content {
-            background: white; width: 90%; max-width: 800px; border-radius: 16px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5); overflow: hidden;
-            display: flex; flex-direction: column; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            max-height: 90vh;
-        }
+        .modal-content { background: white; width: 90%; max-width: 800px; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; }
         .modal-overlay.open .modal-content { transform: scale(1); }
         .modal-header { padding: 15px 20px; background: #2d3436; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .close-modal-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        
         .modal-body { display: flex; padding: 20px; gap: 20px; overflow-y: auto; }
-        .modal-left { 
-            flex: 1.5; display: flex; flex-direction: column; gap: 10px; 
-            overflow-y: auto; max-height: 60vh; padding-right: 5px;
-        }
-        /* Custom Scrollbar cho Modal */
+        .modal-left { flex: 1.5; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 60vh; padding-right: 5px; }
         .modal-left::-webkit-scrollbar { width: 6px; }
         .modal-left::-webkit-scrollbar-thumb { background-color: #b2bec3; border-radius: 10px; }
-
         .modal-right { flex: 1; border-left: 1px solid #eee; padding-left: 20px; }
-        
         .modal-title { font-size: 1.2em; font-weight: 800; color: #2d3436; margin-bottom: 15px; border-bottom: 2px solid #0984e3; padding-bottom: 5px; display: inline-block; }
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1em; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
         .stat-label { color: #636e72; font-weight: 600; }
         .stat-value { font-weight: 700; color: #2d3436; font-family: 'Consolas', monospace; }
-
-        .modal-loading { text-align: center; padding: 50px; font-size: 1.2em; color: #636e72; width: 100%; }
-        .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: #0984e3; animation: spin 1s ease-in-out infinite; margin-bottom: 10px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        @media (max-width: 700px) { .modal-body { flex-direction: column; } .modal-right { border-left: none; border-top: 1px solid #eee; padding-left: 0; padding-top: 20px; } }
-
         .img-box { width: 100%; aspect-ratio: 16 / 9; background-color: #f8f9fa; border-radius: 12px; overflow: hidden; border: 1px solid #e9ecef; display: flex; justify-content: center; align-items: center; position: relative; }
         .img-box img { width: 100%; height: 100%; object-fit: cover; }
         .img-label { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #refresh-btn { position: fixed; bottom: 30px; right: 30px; z-index: 9999; width: 50px; height: 50px; border-radius: 50%; background: #d63031; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(214, 48, 49, 0.4); display: flex; align-items: center; justify-content: center; }
         .site-footer { text-align: center; padding: 40px 20px 80px 20px; color: #636e72; font-size: 14px; margin-top: 30px; border-top: 1px solid #dfe6e9; background-color: #ebedef; }
@@ -220,13 +148,58 @@
         window.addEventListener('resize', updateStickyOffset);
 
         // ==========================================
-        // 2. SHEET FETCH (AllOrigins fallback CodeTabs)
+        // 2. PROXY SYSTEM (CodeTabs -> CorsFix)
+        // ==========================================
+        async function fetchTextWithProxy(url) {
+            // Danh sách Proxy theo yêu cầu: CodeTabs -> CorsFix
+            const proxies = [
+                {
+                    name: "CodeTabs",
+                    getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+                },
+                {
+                    name: "CorsFix",
+                    // Sử dụng định dạng bạn yêu cầu: https://proxy.corsfix.com/? + url
+                    getUrl: (u) => `https://proxy.corsfix.com/?${u}`
+                }
+            ];
+
+            let lastError = null;
+
+            for (let proxy of proxies) {
+                try {
+                    console.log(`Trying Proxy: ${proxy.name}`);
+                    const fetchUrl = proxy.getUrl(url);
+                    const res = await fetch(fetchUrl);
+                    
+                    if (!res.ok) throw new Error(`Status ${res.status}`);
+                    
+                    const content = await res.text();
+                    
+                    // Kiểm tra cơ bản nếu bị Cloudflare chặn
+                    if (content.length < 500 || content.includes("Attention Required! | Cloudflare")) {
+                        throw new Error("Blocked by Cloudflare");
+                    }
+
+                    return content;
+                } catch (e) {
+                    console.warn(`Proxy ${proxy.name} failed:`, e.message);
+                    lastError = e;
+                    continue; 
+                }
+            }
+            throw new Error("All proxies failed.");
+        }
+
+        // ==========================================
+        // 3. FETCH SHEET (Sử dụng hệ thống Proxy mới)
         // ==========================================
         async function fetchSheet(key, forceUpdate) {
             let url = SHEET_CONFIG[key];
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
 
+            // Xử lý link Official
             if (key.includes('official')) {
                 try {
                     const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
@@ -235,27 +208,24 @@
                     const gid = gidMatch ? gidMatch[1] : '0';
                     if(sheetId) {
                         const gvizLink = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                        // Dùng chung hàm proxy mới cho đồng bộ
                         try {
-                             const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(gvizLink + timeStamp)}`);
-                             if(res.ok) {
-                                 const json = await res.json();
-                                 return json.contents;
-                             }
-                        } catch(e) {
-                            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizLink + timeStamp)}`;
-                            const res2 = await fetch(proxyUrl);
-                            if(res2.ok) return await res2.text();
-                        }
+                            return await fetchTextWithProxy(gvizLink + timeStamp);
+                        } catch(e) { return null; }
                     }
                 } catch(e) { return null; }
             } 
             
             try {
+                // Thử fetch trực tiếp trước (Google CSV thường cho phép CORS)
                 const res = await fetch(url + timeStamp);
-                if (!res.ok) throw new Error("Lỗi kết nối");
+                if (!res.ok) throw new Error("CORS Blocked");
                 return await res.text();
             } catch (e) {
-                return null;
+                // Nếu lỗi CORS, dùng Proxy Backup
+                try {
+                    return await fetchTextWithProxy(url + timeStamp);
+                } catch(err) { return null; }
             }
         }
 
@@ -265,7 +235,7 @@
         }
 
         // ==========================================
-        // 3. CORE LOGIC 
+        // 4. CORE LOGIC
         // ==========================================
         async function loadAll(forceUpdate = false) {
             const container = document.getElementById('data-container');
@@ -427,12 +397,10 @@
         }
 
         // ==========================================
-        // 4. FISCHIPEDIA SCRAPER (PROXY ROTATION)
+        // 5. AUTO-SCRAPER VỚI CORSFIX
         // ==========================================
         
-        // Cấu trúc HTML đặc thù của Fischipedia
         function getFischStats(doc, label) {
-            // Target: <p class="data-heading">Speed</p> <ul class="data-content">80 S/ps</ul>
             const headings = doc.querySelectorAll('.data-heading');
             for (let h of headings) {
                 if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) {
@@ -467,65 +435,16 @@
             renderModalContent(itemKey);
         }
 
-        // Chiến thuật: Thử từng proxy, nếu lỗi Cloudflare thì thử cái khác
-        async function fetchTextWithRotation(url) {
-            const cleanUrl = url.split('#')[0]; // Bỏ anchor
-            const proxies = [
-                {
-                    name: "CodeTabs", // Thường load được text nhưng hay dính captcha
-                    getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-                    isJson: false
-                },
-                {
-                    name: "AllOrigins", // Ổn định nhưng hay bị Fischipedia chặn "File not found"
-                    getUrl: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-                    isJson: true
-                },
-                {
-                    name: "CorsProxy", 
-                    getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-                    isJson: false
-                }
-            ];
-
-            for (let proxy of proxies) {
-                try {
-                    console.log(`Trying Proxy: ${proxy.name}`);
-                    const res = await fetch(proxy.getUrl(cleanUrl));
-                    if (!res.ok) throw new Error("Status " + res.status);
-                    
-                    let content = "";
-                    if (proxy.isJson) {
-                        const json = await res.json();
-                        content = json.contents;
-                    } else {
-                        content = await res.text();
-                    }
-
-                    // Kiểm tra xem có bị Cloudflare chặn không (Content quá ngắn)
-                    if (content.length < 1000 || content.includes("Verifying you are human") || content.includes("File not found")) {
-                        throw new Error("Blocked by Cloudflare/Server");
-                    }
-                    
-                    return content;
-                } catch(e) {
-                    console.warn(`Proxy ${proxy.name} failed:`, e.message);
-                }
-            }
-            throw new Error("All proxies blocked");
-        }
-
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
-                // Xác định URL: Nếu trong sheet có link thì dùng, không thì đoán
                 let targetUrl = wikiUrl;
                 if (!targetUrl.includes('fischipedia.org')) {
-                     // Nếu dữ liệu cũ trỏ tới Fandom, force sang Fischipedia
                      let pageName = imageCache[itemKey].nameDisplay.replace(/ /g, '_');
                      targetUrl = `https://fischipedia.org/wiki/${pageName}`;
                 }
 
-                const html = await fetchTextWithRotation(targetUrl);
+                // Dùng hàm proxy mới (CodeTabs -> CorsFix)
+                const html = await fetchTextWithProxy(targetUrl);
                 
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
@@ -537,11 +456,7 @@
                     seat:  getFischStats(doc, 'Seats')
                 };
                 
-                console.log("[Stats] Found:", stats);
-
-                // Lấy ảnh
                 let imgGame = null, imgMenu = null;
-                // Ưu tiên ảnh trong infobox
                 const mainImg = doc.querySelector('.infobox-image img');
                 if (mainImg) imgMenu = mainImg.getAttribute('src');
 
@@ -555,7 +470,6 @@
                     }
                 });
 
-                // Xử lý link ảnh (thêm domain nếu thiếu)
                 const fixUrl = (u) => {
                     if (!u) return null;
                     if (u.startsWith('/')) return 'https://fischipedia.org' + u;
@@ -607,10 +521,10 @@
                 <div class="modal-right">
                     <div class="modal-title">
                         Thông số (Fischipedia) 
-                        ${isError ? '<span style="color:red; font-size:0.6em">(Bị chặn)</span>' : ''}
+                        ${isError ? '<span style="color:red; font-size:0.6em">(Lỗi tải)</span>' : ''}
                     </div>
                     <div id="modal-stats-container">
-                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Cloudflare đang chặn kết nối đến Wiki này. Vui lòng bấm link bên dưới để xem trực tiếp.</div>' : ''}
+                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Không thể tải dữ liệu (Proxy chặn).</div>' : ''}
                         
                         <div class="stat-row"><span class="stat-label">Tốc độ (Speed):</span> <span class="stat-value">${s.speed}</span></div>
                         <div class="stat-row"><span class="stat-label">Bẻ lái (Steering):</span> <span class="stat-value">${s.turn}</span></div>
