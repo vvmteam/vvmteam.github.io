@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Cosmetic Value</title>
+    <title>Fisch Cosmetic Value - Fuyutya</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -67,7 +67,6 @@
         .row { display: flex; padding: 15px 25px; border-bottom: 1px solid #f1f2f6; align-items: center; transition: 0.2s; background: white; }
         
         /* --- 3. HÀNG KHI HOVER (TƯỚNG) --- */
-        /* Z-Index 5000: Cao hơn Header Tier nhưng thấp hơn Wrapper */
         .row:hover { 
             background-color: #f8f9fa; 
             position: relative; 
@@ -84,9 +83,8 @@
         
         .hover-images {
             display: none; 
-            position: fixed; /* Bay tự do */
-            z-index: 11000;  /* Cao hơn cả Wrapper */
-            
+            position: fixed; 
+            z-index: 11000;  
             background: white; padding: 15px; border-radius: 16px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.08);
             animation: fadeIn 0.2s ease-out;
@@ -101,18 +99,8 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* === ĐÃ CHỈNH SỬA KÍCH THƯỚC GỌN GÀNG HƠN === */
-        /* Trường hợp 1 ảnh: Rộng 280px */
-        .hover-images.single-img { 
-            grid-template-columns: 1fr; 
-            width: 280px; 
-        }
-        /* Trường hợp 2 ảnh: Rộng 500px, chia đôi */
-        .hover-images.double-img { 
-            grid-template-columns: 1fr 1fr; 
-            width: 500px; 
-        }
-        /* ============================================= */
+        .hover-images.single-img { grid-template-columns: 1fr; width: 280px; }
+        .hover-images.double-img { grid-template-columns: 1fr 1fr; width: 500px; }
 
         .img-box {
             width: 100%; aspect-ratio: 16 / 9; 
@@ -127,6 +115,18 @@
             background: #d63031; color: white; border: none; font-size: 24px; cursor: pointer;
             box-shadow: 0 5px 15px rgba(214, 48, 49, 0.4); display: flex; align-items: center; justify-content: center;
         }
+
+        /* --- 5. FOOTER (MỚI THÊM) --- */
+        .site-footer {
+            text-align: center;
+            padding: 40px 20px 80px 20px; /* Padding bottom 80px để tạo khoảng trống lớn */
+            color: #636e72;
+            font-size: 14px;
+            margin-top: 30px;
+            border-top: 1px solid #dfe6e9;
+            background-color: #ebedef;
+        }
+        .site-footer b { color: #2d3436; font-weight: 700; }
     </style>
 </head>
 <body>
@@ -150,11 +150,16 @@
     </div>
 
     <div id="data-container"></div>
+
+    <footer class="site-footer">
+        Create and Maintaince by <b>Fuyutya</b> - Last Update: 08/12/2025
+    </footer>
+
     <button id="refresh-btn" onclick="forceReload()">↻</button>
 
     <script>
         // ==========================================
-        // 1. CẤU HÌNH LIÊN KẾT (TRỰC TIẾP)
+        // 1. CẤU HÌNH LIÊN KẾT
         // ==========================================
         const SHEET_CONFIG = {
             tier_boat:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=0&single=true&output=csv',
@@ -332,7 +337,6 @@
             const imgsData = el.getAttribute('data-imgs');
             if (!imgsData) return;
 
-            // Tính toán vị trí Fixed
             const rect = el.getBoundingClientRect();
             container.style.top = (rect.bottom + 10) + 'px';
             container.style.left = (rect.left + 20) + 'px';
