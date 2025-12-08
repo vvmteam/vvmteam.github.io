@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Tra Cứu Fisch (v8.3 - Ultimate Scraper)</title>
+    <title>Wiki Tra Cứu Fisch (v8.4 - Debug Mode)</title>
     <style>
         /* --- CẤU HÌNH CƠ BẢN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -222,7 +222,7 @@
         window.addEventListener('resize', updateStickyOffset);
 
         // ==========================================
-        // 2. BACKUP PROXY SYSTEM (MẠNH MẼ)
+        // 2. BACKUP PROXY SYSTEM (DEBUG MODE)
         // ==========================================
         async function fetchTextWithBackup(url) {
             const proxies = [
@@ -248,7 +248,8 @@
             for (let proxy of proxies) {
                 try {
                     const fetchUrl = proxy.getUrl(url);
-                    // console.log(`Trying Proxy: ${proxy.name}`);
+                    console.log(`[Proxy] Trying: ${proxy.name} -> ${fetchUrl}`); // --- LOG BẬT ---
+                    
                     const res = await fetch(fetchUrl);
                     if (!res.ok) throw new Error(`Status ${res.status}`);
                     
@@ -259,7 +260,7 @@
                         return await res.text();
                     }
                 } catch (e) {
-                    console.warn(`Proxy ${proxy.name} failed. Trying next...`);
+                    console.warn(`[Proxy] ${proxy.name} failed:`, e.message); // --- LOG BẬT ---
                     lastError = e;
                     continue; 
                 }
@@ -459,10 +460,9 @@
         }
 
         // ==========================================
-        // 3. AUTO-SCRAPER (ULTIMATE LOGIC)
+        // 3. AUTO-SCRAPER (DEBUG ENABLED)
         // ==========================================
         
-        // HÀM HELPER: TÌM GIÁ TRỊ THÔNG MINH
         function findValueByKeyword(doc, keyword) {
             // Priority 1: Custom Class of Fisch Wiki (.data-heading / .data-content)
             try {
@@ -486,23 +486,20 @@
                 }
             } catch (e) {}
 
-            // Priority 3: Blind XPath Search (Last Resort)
-            // Tìm tất cả text node chứa keyword, rồi tìm số gần đó
+            // Priority 3: Blind XPath Search
             try {
                 const xpath = `//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${keyword}')]`;
                 const iterator = doc.evaluate(xpath, doc, null, XPathResult.ANY_TYPE, null);
                 let node = iterator.iterateNext();
                 
                 while (node) {
-                    if (node.textContent.length < 50) { // Chỉ xét node ngắn (tiêu đề)
-                        // Lấy text của node cha
+                    if (node.textContent.length < 50) { 
                         let parentText = node.parentElement.textContent.replace(/\s+/g, ' ').trim();
-                        // Regex tìm số sau keyword (Vd: Speed: 80)
+                        // Regex tìm số (vd: Speed: 80 hoặc 30°)
                         let regex = new RegExp(`${keyword}[:\\s]+([0-9.]+\\s?[a-zA-Z°/%]*)`, 'i');
                         let match = parentText.match(regex);
                         if (match) return match[1];
                         
-                        // Hoặc tìm trong thẻ anh em kế tiếp
                         let sibling = node.nextElementSibling || node.parentElement.nextElementSibling;
                         if (sibling) return sibling.textContent.trim();
                     }
@@ -530,7 +527,7 @@
                     <div class="modal-loading">
                         <div class="spinner"></div>
                         <div>Đang kết nối Wiki...</div>
-                        <small style="font-size:0.8em; opacity:0.7">Sử dụng Auto-Scraper v8.3</small>
+                        <small style="font-size:0.8em; opacity:0.7">Sử dụng Auto-Scraper v8.4 (Check Console)</small>
                     </div>`;
                 await scrapeWikiData(itemKey, data.wikiLink);
             }
@@ -539,13 +536,13 @@
 
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
-                // console.log(`Scraping: ${wikiUrl}`);
+                console.log(`[Scraper] Starting: ${wikiUrl}`); // --- LOG BẬT ---
                 const html = await fetchTextWithBackup(wikiUrl);
+                console.log(`[Scraper] HTML Received (${html.length} chars)`); // --- LOG BẬT ---
                 
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 
-                // --- 1. LẤY STATS ---
                 const stats = {
                     speed: findValueByKeyword(doc, 'speed'),
                     turn:  findValueByKeyword(doc, 'steering') === '?' ? findValueByKeyword(doc, 'turn') : findValueByKeyword(doc, 'steering'),
@@ -553,9 +550,8 @@
                     seat:  findValueByKeyword(doc, 'seats') === '?' ? findValueByKeyword(doc, 'seat') : findValueByKeyword(doc, 'seats')
                 };
                 
-                // console.log("Stats result:", stats);
+                console.log("[Scraper] Stats Found:", stats); // --- LOG BẬT ---
 
-                // --- 2. LẤY HÌNH ẢNH ---
                 let imgGame = null, imgMenu = null;
                 const mainImg = doc.querySelector('.infobox-image img') || doc.querySelector('.pi-image-thumbnail');
                 if (mainImg) {
@@ -580,7 +576,7 @@
                 imageCache[itemKey].fetched = true;
 
             } catch (err) {
-                console.error("Scrape Error:", err);
+                console.error("[Scraper] Error:", err); // --- LOG ERROR ---
                 imageCache[itemKey].stats = { speed: 'Error', turn: 'Error', accel: 'Error', seat: 'Error' };
                 imageCache[itemKey].fetched = true;
             }
@@ -598,7 +594,6 @@
                     if (data.urls.length > 1) {
                          label = (index === 0) ? "In-Game / Main" : "Menu / Icon"; 
                     }
-                    // Thêm referrerpolicy="no-referrer" để tránh lỗi 403 từ Fandom
                     imgHtml += `
                         <div class="img-box">
                             <img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=No+Image'">
