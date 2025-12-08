@@ -176,13 +176,13 @@
         </div>
     </div>
 
-    <script>
+<script>
         // ==========================================
         // 1. CẤU HÌNH LIÊN KẾT
         // ==========================================
         const SHEET_CONFIG = {
-            tier_boat:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=0&single=true&output=csv',
-            tier_skin:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=701267659&single=true&output=csv',
+            tier_boat:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=0&single=true&output=csv',
+            tier_skin:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=701267659&single=true&output=csv',
             obtain_boat: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=1752951421&single=true&output=csv',
             obtain_skin: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=2094862161&single=true&output=csv',
             images:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=138903966&single=true&output=csv',
@@ -220,55 +220,50 @@
         window.addEventListener('resize', updateStickyOffset);
 
         // ==========================================
-        // 2. FETCH VỚI ACTION=RENDER (Bypass chặn)
+        // 2. SHEET FETCH (Giữ nguyên logic Proxy cho Sheet)
         // ==========================================
-        async function fetchTextWithBackup(url) {
-            // QUAN TRỌNG: Thêm action=render để lấy nội dung sạch, nhẹ, tránh bị chặn
-            const cleanUrl = url + (url.includes('?') ? '&' : '?') + 'action=render';
+        async function fetchSheet(key, forceUpdate) {
+            let url = SHEET_CONFIG[key];
+            if (!url) { console.error(`Thiếu link: ${key}`); return null; }
+            const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
 
-            const proxies = [
-                {
-                    name: "AllOrigins",
-                    getUrl: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-                    isJson: true
-                },
-                {
-                    name: "CorsProxy",
-                    getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-                    isJson: false
-                },
-                {
-                    name: "CodeTabs",
-                    getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-                    isJson: false
-                }
-            ];
-
-            for (let proxy of proxies) {
+            if (key.includes('official')) {
                 try {
-                    console.log(`[Proxy] Trying: ${proxy.name} -> ${proxy.getUrl(cleanUrl)}`);
-                    const res = await fetch(proxy.getUrl(cleanUrl));
-                    if (!res.ok) throw new Error(`Status ${res.status}`);
-                    
-                    let content = "";
-                    if (proxy.isJson) {
-                        const data = await res.json();
-                        content = data.contents;
-                    } else {
-                        content = await res.text();
+                    const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                    const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
+                    const sheetId = idMatch ? idMatch[1] : null;
+                    const gid = gidMatch ? gidMatch[1] : '0';
+                    if(sheetId) {
+                        const gvizLink = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                        // Dùng AllOrigins cho Sheet (ổn định hơn CodeTabs cho text)
+                        try {
+                             const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(gvizLink + timeStamp)}`);
+                             if(res.ok) {
+                                 const json = await res.json();
+                                 return json.contents;
+                             }
+                        } catch(e) {
+                            // Fallback CodeTabs
+                            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizLink + timeStamp)}`;
+                            const res2 = await fetch(proxyUrl);
+                            if(res2.ok) return await res2.text();
+                        }
                     }
-                    
-                    if (content.length < 500) throw new Error("Blocked/Short content");
-                    
-                    return content;
-                } catch (e) {
-                    console.warn(`[Proxy] ${proxy.name} failed:`, e.message);
-                    continue; 
-                }
+                } catch(e) { return null; }
+            } 
+            
+            try {
+                const res = await fetch(url + timeStamp);
+                if (!res.ok) throw new Error("Lỗi kết nối");
+                return await res.text();
+            } catch (e) {
+                return null;
             }
-            throw new Error("All proxies failed.");
         }
 
+        // ==========================================
+        // 3. CORE LOGIC (Load, Render, etc...)
+        // ==========================================
         async function loadAll(forceUpdate = false) {
             const container = document.getElementById('data-container');
             if (Object.keys(imageCache).length === 0 || forceUpdate) {
@@ -333,38 +328,6 @@
                     };
                 }
             });
-        }
-
-        async function fetchSheet(key, forceUpdate) {
-            let url = SHEET_CONFIG[key];
-            if (!url) { console.error(`Thiếu link: ${key}`); return null; }
-            const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
-
-            if (key.includes('official')) {
-                try {
-                    const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                    const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
-                    const sheetId = idMatch ? idMatch[1] : null;
-                    const gid = gidMatch ? gidMatch[1] : '0';
-                    if(sheetId) {
-                        const gvizLink = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                        try {
-                            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizLink + timeStamp)}`;
-                            const res = await fetch(proxyUrl);
-                            if(res.ok) return await res.text();
-                        } catch(e) {}
-                    }
-                } catch(e) { return null; }
-            } 
-            
-            try {
-                const res = await fetch(url + timeStamp);
-                if (!res.ok) throw new Error("Lỗi kết nối");
-                return await res.text();
-            } catch (e) {
-                document.getElementById('data-container').innerHTML = `<div style="color:red; text-align:center;">Lỗi tải: ${e.message}</div>`;
-                return null;
-            }
         }
 
         function updateHeaders() {
@@ -461,21 +424,21 @@
         }
 
         // ==========================================
-        // 3. LOGIC PARSER CHÍNH XÁC
+        // 4. API SCRAPER (THAY THẾ PROXY SCRAPER)
         // ==========================================
+        
+        // Hàm trích xuất giá trị từ HTML (đã được lấy về)
         function getFischStats(doc, label) {
-            // Target: <p class="data-heading">Label</p> <ul class="data-content">Value</ul>
+            // Logic tìm kiếm class đặc thù của Fischipedia
             const headings = doc.querySelectorAll('.data-heading, .pi-data-label');
-            
             for (let h of headings) {
                 if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) {
-                    // Kiểm tra thẻ em ruột (nextElementSibling)
                     let sibling = h.nextElementSibling;
                     if (sibling && (sibling.classList.contains('data-content') || sibling.classList.contains('pi-data-value'))) {
                          return sibling.textContent.trim();
                     }
-                    // Kiểm tra thẻ cha (fallback)
-                    let parent = h.parentElement; 
+                    // Fallback
+                    let parent = h.parentElement;
                     if (parent) {
                         let content = parent.querySelector('.data-content, .pi-data-value');
                         if (content) return content.textContent.trim();
@@ -500,7 +463,8 @@
                 modalBody.innerHTML = `
                     <div class="modal-loading">
                         <div class="spinner"></div>
-                        <div>Đang tải từ Wiki...</div>
+                        <div>Đang kết nối API Wiki...</div>
+                        <small style="font-size:0.8em; opacity:0.7">Direct API Call (No-Proxy)</small>
                     </div>`;
                 await scrapeWikiData(itemKey, data.wikiLink);
             }
@@ -509,12 +473,35 @@
 
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
-                console.log(`[Scraper] Starting: ${wikiUrl}`);
-                const html = await fetchTextWithBackup(wikiUrl);
-                console.log(`[Scraper] HTML Received (${html.length} chars)`); 
+                // 1. Lấy tên bài viết từ URL (ví dụ: https://fischipedia.org/wiki/Cthulhu_Boat -> Cthulhu_Boat)
+                let pageName = wikiUrl.split('/wiki/')[1];
+                if (!pageName) pageName = imageCache[itemKey].nameDisplay.replace(/ /g, '_'); // Fallback
 
+                // 2. Tạo URL API của Fandom
+                // action=parse: Đọc nội dung bài
+                // page: Tên bài
+                // prop=text: Chỉ lấy HTML nội dung
+                // origin=*: QUAN TRỌNG NHẤT - Cho phép CORS để fetch trực tiếp
+                const apiUrl = `https://fischipedia.org/api.php?action=parse&page=${pageName}&prop=text&format=json&origin=*`;
+                
+                console.log(`[API] Calling: ${apiUrl}`);
+
+                const res = await fetch(apiUrl);
+                if (!res.ok) throw new Error("API Access Error");
+                
+                const json = await res.json();
+                
+                if (json.error) {
+                    console.error("Wiki API Error:", json.error);
+                    throw new Error("Page not found in Wiki API");
+                }
+
+                // Lấy HTML thô từ JSON
+                const htmlContent = json.parse.text['*'];
+                
+                // 3. Parse HTML
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
+                const doc = parser.parseFromString(htmlContent, 'text/html');
 
                 const stats = {
                     speed: getFischStats(doc, 'Speed'),
@@ -523,8 +510,9 @@
                     seat:  getFischStats(doc, 'Seats')
                 };
                 
-                console.log("[Scraper] Stats Found:", stats);
+                console.log("[API] Stats:", stats);
 
+                // Lấy ảnh từ HTML API (đã có trong parse.text)
                 let imgGame = null, imgMenu = null;
                 const mainImg = doc.querySelector('.infobox-image img, .pi-image-thumbnail');
                 if (mainImg) {
@@ -548,7 +536,7 @@
                 imageCache[itemKey].fetched = true;
 
             } catch (err) {
-                console.error("[Scraper] Error:", err);
+                console.error("[API] Error:", err);
                 imageCache[itemKey].stats = { speed: 'Error', turn: 'Error', accel: 'Error', seat: 'Error' };
                 imageCache[itemKey].fetched = true;
             }
@@ -568,7 +556,7 @@
                     }
                     imgHtml += `
                         <div class="img-box">
-                            <img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=No+Image'">
+                            <img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=Image+Error'">
                             <span class="img-label">${label}</span>
                         </div>`; 
                 });
@@ -590,7 +578,7 @@
                         ${isError ? '<span style="color:red; font-size:0.6em">(Lỗi tải)</span>' : ''}
                     </div>
                     <div id="modal-stats-container">
-                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Không thể lấy dữ liệu từ Wiki (Thử lại sau).</div>' : ''}
+                        ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Không thể tải dữ liệu (Wiki chặn hoặc sai tên).</div>' : ''}
                         
                         <div class="stat-row"><span class="stat-label">Tốc độ (Speed):</span> <span class="stat-value">${s.speed}</span></div>
                         <div class="stat-row"><span class="stat-label">Bẻ lái (Steering):</span> <span class="stat-value">${s.turn}</span></div>
