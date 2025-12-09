@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Value (v17.0 - Color & Split UI)</title>
+    <title>Fisch Value (v17.1 - Mobile Fix)</title>
     <style>
         /* --- CẤU HÌNH GIAO DIỆN CHUNG --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -36,15 +36,27 @@
         .hover-images.active { display: grid; }
         .hover-images.single-img { grid-template-columns: 1fr; width: 280px; }
         .hover-images.double-img { grid-template-columns: 1fr 1fr; width: 500px; }
+        
+        /* MODAL STYLES */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 20000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
         .modal-overlay.open { display: flex; opacity: 1; }
         .modal-content { background: white; width: 95%; max-width: 900px; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; }
         .modal-overlay.open .modal-content { transform: scale(1); }
-        .modal-header { padding: 15px 20px; background: #2d3436; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header { padding: 15px 20px; background: #2d3436; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .close-modal-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        .modal-body { display: flex; padding: 20px; gap: 20px; overflow-y: hidden; max-height: 80vh; }
-        .modal-left { flex: 1.5; display: flex; flex-direction: column; gap: 10px; justify-content: center; align-items: center; background-color: #f8f9fa; border-radius: 12px; padding: 10px; overflow: hidden; }
+        
+        /* Modal Body PC */
+        .modal-body { display: flex; padding: 20px; gap: 20px; overflow: hidden; height: 100%; }
+        .modal-left { 
+            flex: 1.5; display: flex; flex-direction: column; gap: 15px; 
+            background-color: #f8f9fa; border-radius: 12px; padding: 15px; 
+            overflow-y: auto; /* Cho phép cuộn riêng phần ảnh nếu quá nhiều trên PC */
+        }
+        .modal-left::-webkit-scrollbar { width: 6px; }
+        .modal-left::-webkit-scrollbar-thumb { background-color: #b2bec3; border-radius: 10px; }
+        
         .modal-right { flex: 1; border-left: 1px solid #eee; padding-left: 20px; overflow-y: auto; }
+        
         .modal-title { font-size: 1.2em; font-weight: 800; color: #2d3436; margin-bottom: 15px; border-bottom: 2px solid #0984e3; padding-bottom: 5px; display: inline-block; }
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1em; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
         .stat-label { color: #636e72; font-weight: 600; }
@@ -52,9 +64,36 @@
         .modal-loading { text-align: center; padding: 50px; font-size: 1.2em; color: #636e72; width: 100%; }
         .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: #0984e3; animation: spin 1s ease-in-out infinite; margin-bottom: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 768px) { .modal-body { flex-direction: column; overflow-y: auto; } .modal-right { border-left: none; border-top: 1px solid #eee; padding-left: 0; padding-top: 20px; } .modal-left { min-height: 200px; } }
-        .img-box { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; max-height: 350px; }
-        .img-box img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+
+        /* --- RESPONSIVE FIX (MOBILE) --- */
+        @media (max-width: 768px) { 
+            .modal-content { max-height: 95vh; }
+            .modal-body { 
+                flex-direction: column; 
+                overflow-y: auto; /* Cho phép cuộn toàn bộ body */
+                padding: 15px;
+            } 
+            .modal-left { 
+                width: 100%; 
+                flex: none; 
+                height: auto; /* Tự động giãn theo nội dung */
+                overflow: visible; /* Không ẩn ảnh thừa */
+                margin-bottom: 20px;
+            }
+            .modal-right { 
+                border-left: none; 
+                border-top: 1px solid #eee; 
+                padding-left: 0; 
+                padding-top: 20px; 
+                overflow: visible;
+                flex: none;
+            } 
+            .value-circle { width: 100px; height: 100px; } /* Thu nhỏ vòng tròn chút trên mobile */
+            .val-num { font-size: 1.5em; }
+        }
+
+        .img-box { width: 100%; display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 10px; }
+        .img-box img { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); object-fit: contain; max-height: 300px; }
         .img-label { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; white-space: nowrap; pointer-events: none; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
@@ -75,12 +114,11 @@
         .btn-yes { background: #d63031; color: white; }
         .btn-no { background: #636e72; color: white; }
 
-        /* --- UPDATED VALUE CIRCLE IN MODAL --- */
+        /* --- CIRCLE VALUE --- */
         .modal-header-info { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
         .value-circle { 
-            width: 140px; height: 140px; /* Tăng kích thước chút để chứa note */
+            width: 140px; height: 140px; 
             border-radius: 50%; 
-            /* Background set by JS */
             color: white; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
@@ -93,7 +131,7 @@
         .value-circle:hover { transform: scale(1.05); }
         .val-num { font-size: 2em; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .val-note { 
-            font-size: 0.35em; /* 0.2 - 0.3 so với Val (Val 2em -> Note 0.35 * 2 = 0.7em) */
+            font-size: 0.35em;
             margin-top: 5px; 
             opacity: 0.9; 
             line-height: 1.2;
@@ -173,7 +211,7 @@
                 mode_obtain: "Cách nhận",
                 tab_boat: "Thuyền",
                 tab_skin: "Skin",
-                tab_cosmetic: "Vật phẩm", // Đã sửa
+                tab_cosmetic: "Vật phẩm",
                 tab_fish: "Cá",
                 footer_text: "Phát triển và bảo trì bởi",
                 last_update: "Cập nhật cuối",
@@ -304,21 +342,21 @@
         window.addEventListener('load', () => {
             applyLanguage(); 
             updateStickyOffset();
+            loadAll(); // GỌI LOADALL NGAY KHI LOAD
         });
         window.addEventListener('resize', updateStickyOffset);
 
+        // ... [Caching & Proxy logic giống cũ] ...
         function getNextMondayTimestamp() {
             const d = new Date();
             d.setDate(d.getDate() + (1 + 7 - d.getDay()) % 7 || 7); 
             d.setHours(0, 0, 0, 0);
             return d.getTime();
         }
-
         function saveToCache(key, data) {
             const cacheItem = { data: data, expiry: getNextMondayTimestamp() };
             localStorage.setItem(`fisch_cache_${key}`, JSON.stringify(cacheItem));
         }
-
         function getFromCache(key) {
             const cachedRaw = localStorage.getItem(`fisch_cache_${key}`);
             if (!cachedRaw) return null;
@@ -331,7 +369,6 @@
                 return cached.data;
             } catch (e) { return null; }
         }
-
         async function fetchTextWithProxy(url) {
             const proxies = [
                 { name: "CodeTabs", getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
@@ -348,7 +385,6 @@
             }
             throw new Error("All proxies failed.");
         }
-
         async function fetchSheet(key, forceUpdate) {
             let url = SHEET_CONFIG[key];
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
@@ -373,12 +409,10 @@
                 try { return await fetchTextWithProxy(url + timeStamp); } catch(err) { return null; }
             }
         }
-
         function splitCSV(line) {
             const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             return cols.map(c => c.replace(/^"|"$/g, '').trim().replace(/""/g, '"'));
         }
-
         async function loadAll(forceUpdate = false) {
             const container = document.getElementById('data-container');
             if (Object.keys(imageCache).length === 0 || forceUpdate) {
@@ -408,7 +442,6 @@
                 }
             }
         }
-
         async function fetchImages(forceUpdate) {
             const csv = await fetchSheet('images', forceUpdate);
             if (!csv) return;
@@ -441,7 +474,6 @@
                 }
             });
         }
-
         function updateHeaders() {
             const headerDiv = document.getElementById('header-row');
             let html = '';
@@ -458,7 +490,6 @@
             }
             headerDiv.innerHTML = html;
         }
-
         function renderData(csvText) {
             const container = document.getElementById('data-container');
             container.innerHTML = '';
@@ -529,55 +560,33 @@
             updateStickyOffset();
         }
 
-        // ==========================================
-        // HELPER: VALUE PARSER & COLOR LOGIC
-        // ==========================================
-        
-        // 1. Tách chuỗi Value thành 2 phần: Số chính (to) và Chú thích (nhỏ)
+        // --- PARSE & COLOR LOGIC ---
         function parseValueDisplay(rawVal) {
             if (!rawVal) return { main: '?', note: '' };
-            // Regex: Lấy phần số/kí tự đầu tiên (vd: 650+, 1.5k) cho đến khi gặp dấu mở ngoặc hoặc khoảng trắng dài
-            // Ví dụ: "650+ (C/C...)" -> main: "650+ ", note: "(C/C...)"
             const match = rawVal.match(/^([^\(]+)(.*)$/); 
-            if (match) {
-                return { 
-                    main: match[1].trim(), 
-                    note: match[2].trim() 
-                };
-            }
+            if (match) return { main: match[1].trim(), note: match[2].trim() };
             return { main: rawVal, note: '' };
         }
 
-        // 2. Logic màu sắc dựa trên giá trị số
         function getValueColor(valStr) {
-            // Loại bỏ các ký tự không phải số để so sánh (giữ lại k, m nếu muốn xử lý nâng cao, ở đây đơn giản hóa)
-            // Ví dụ: "650+" -> 650. "C$ 500" -> 500. "1.5k" -> 1500 (nếu cần logic k)
-            // Ở đây tôi dùng regex lấy số đầu tiên tìm thấy
             const numMatch = valStr.replace(/,/g, '').match(/(\d+(\.\d+)?)/);
-            if (!numMatch) return 'linear-gradient(135deg, #b2bec3, #dfe6e9)'; // Màu xám mặc định nếu ko có số
-
+            if (!numMatch) return 'linear-gradient(135deg, #b2bec3, #dfe6e9)';
             let num = parseFloat(numMatch[0]);
-            
-            // Xử lý đơn vị k (nghìn), m (triệu) nếu có
             if (valStr.toLowerCase().includes('k')) num *= 1000;
             if (valStr.toLowerCase().includes('m')) num *= 1000000;
 
-            if (num < 1) return '#2ecc71'; // Xanh lá
-            if (num <= 6) return '#0984e3'; // Xanh dương
-            if (num <= 20) return '#6c5ce7'; // Tím
-            if (num <= 99) return '#f1c40f'; // Vàng
-            if (num <= 499) return '#d63031'; // Đỏ
-            return 'linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8)'; // Rainbow
+            if (num < 1) return '#2ecc71'; 
+            if (num <= 6) return '#0984e3'; 
+            if (num <= 20) return '#6c5ce7'; 
+            if (num <= 99) return '#f1c40f'; 
+            if (num <= 499) return '#d63031'; 
+            return 'linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8)'; 
         }
 
-        // ==========================================
-        // RENDER MODAL WITH NEW UI
-        // ==========================================
         function renderModalContent(itemKey) {
             const data = (typeof itemKey === 'string') ? imageCache[itemKey] : itemKey;
             const modalBody = document.getElementById('modal-body-content');
             if (!data) return;
-
             let imgHtml = '';
             if (data.urls && data.urls.length > 0) {
                 data.urls.forEach((url, index) => { 
@@ -588,11 +597,9 @@
             } else { 
                 imgHtml = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:200px; color:#999;"><span>${t('no_image')}</span></div>`; 
             }
-
             const s = data.stats || { speed: '?', turn: '?', accel: '?', seat: '?' };
             const isError = s.speed === 'Error';
-
-            // --- XỬ LÝ HIỂN THỊ VALUE ---
+            
             const rawValue = data.sheetVal || 'N/A';
             const parsedVal = parseValueDisplay(rawValue);
             const bgStyle = getValueColor(parsedVal.main);
@@ -608,33 +615,26 @@
                         </div>
                         ${displayDemand ? `<div class="demand-info">${displayDemand}</div>` : ''}
                     </div>
-
                     <div class="modal-title">
                         ${t('modal_title_wiki')} 
                         ${isError ? '<span style="color:red; font-size:0.6em">(Error)</span>' : ''}
                     </div>
                     <div id="modal-stats-container">
                         ${isError ? `<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">${t('error_proxy')}</div>` : ''}
-                        
                         <div class="stat-row"><span class="stat-label">${t('stat_price')}:</span> <span class="stat-value" style="color:#e17055">${s.price || '?'}</span></div>
                         <div class="stat-row"><span class="stat-label">${t('stat_speed')}:</span> <span class="stat-value">${s.speed}</span></div>
                         <div class="stat-row"><span class="stat-label">${t('stat_turn')}:</span> <span class="stat-value">${s.turn}</span></div>
                         <div class="stat-row"><span class="stat-label">${t('stat_accel')}:</span> <span class="stat-value">${s.accel}</span></div>
                         <div class="stat-row"><span class="stat-label">${t('stat_seat')}:</span> <span class="stat-value">${s.seat}</span></div>
-                        
                         <div style="margin-top:20px; font-size:0.9em; text-align:right">
-                            <a href="${data.wikiLink || 'https://fischipedia.org'}" target="_blank" style="color:white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">
-                                ${t('open_wiki')} ↗
-                            </a>
+                            <a href="${data.wikiLink || 'https://fischipedia.org'}" target="_blank" style="color:white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">${t('open_wiki')} ↗</a>
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        // ==========================================
-        // AUTO-SCRAPER FUNCTIONS
-        // ==========================================
+        // [SCRAPER FUNCTIONS - SAME AS BEFORE]
         function getFischStats(doc, label) {
             const headings = doc.querySelectorAll('.data-heading');
             for (let h of headings) {
@@ -676,33 +676,28 @@
             } catch(e) {}
             return null;
         }
-
         async function openModal(itemKey) {
             const modal = document.getElementById('info-modal');
             const modalBody = document.getElementById('modal-body-content');
             const title = document.getElementById('modal-item-name');
             const data = imageCache[itemKey]; 
-            
             if (!data) return;
             modal.classList.add('open');
             title.innerText = data.nameDisplay;
-
             const cachedData = getFromCache(itemKey);
             if (cachedData) {
                 data.stats = cachedData.stats;
                 data.urls = cachedData.urls;
                 data.fetched = true;
-                renderModalContent(itemKey); 
+                renderModalContent(itemKey);
                 return;
             }
-
             if ((!data.fetched || (data.stats && data.stats.speed === 'Error')) && data.wikiLink) {
                 modalBody.innerHTML = `<div class="modal-loading"><div class="spinner"></div><div>${t('modal_loading')}</div><small style="font-size:0.8em; opacity:0.7">${t('modal_loading_sub')}</small></div>`;
                 await scrapeWikiData(itemKey, data.wikiLink);
             }
             renderModalContent(itemKey);
         }
-
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
                 let targetUrl = wikiUrl;
@@ -713,7 +708,6 @@
                 const html = await fetchTextWithProxy(targetUrl);
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
-
                 const stats = {
                     speed: getFischStats(doc, 'Speed'),
                     turn:  getFischStats(doc, 'Steering'),
@@ -721,7 +715,6 @@
                     seat:  getFischStats(doc, 'Seats'),
                     price: getFischPrice(doc)
                 };
-                
                 let gameImgFileUrl = null, menuImgFileUrl = null;
                 const tables = doc.querySelectorAll('table.wikitable');
                 tables.forEach(table => {
@@ -772,7 +765,6 @@
                 imageCache[itemKey].fetched = true;
             }
         }
-
         function requestReload() { document.getElementById('confirm-modal').classList.add('open'); }
         function closeConfirmModal() { document.getElementById('confirm-modal').classList.remove('open'); }
         function executeReload() {
