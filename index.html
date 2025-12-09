@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Fisch (v15.0 - Multi-Language)</title>
+    <title>Fisch Value (v16.0 - UI Update)</title>
     <style>
         /* --- CẤU HÌNH GIAO DIỆN --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -61,20 +61,36 @@
         /* FLOATING BUTTONS */
         .floating-btn { position: fixed; right: 30px; z-index: 9999; width: 50px; height: 50px; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: 0.3s; color: white; }
         .floating-btn:hover { transform: scale(1.1); }
-        
         #refresh-btn { bottom: 30px; background: #d63031; }
         #lang-btn { bottom: 90px; background: #0984e3; font-size: 20px; font-weight: bold; }
 
         .site-footer { text-align: center; padding: 40px 20px 80px 20px; color: #636e72; font-size: 14px; margin-top: 30px; border-top: 1px solid #dfe6e9; background-color: #ebedef; }
         .site-footer b { color: #2d3436; font-weight: 700; }
 
-        /* MODAL STYLES */
+        /* MODAL CONFIRM */
         #confirm-modal .modal-content { max-width: 400px; text-align: center; overflow: visible; }
         #confirm-modal .modal-header { background: #d63031; color: white; justify-content: center; padding: 15px; }
         #confirm-modal .modal-body { flex-direction: column; gap: 15px; padding: 25px 20px; overflow: visible; height: auto; }
         .confirm-btn { padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-size: 15px; }
         .btn-yes { background: #d63031; color: white; }
         .btn-no { background: #636e72; color: white; }
+
+        /* --- NEW STYLES FOR VALUE CIRCLE IN MODAL --- */
+        .modal-header-info { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .value-circle { 
+            width: 120px; height: 120px; 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, #00b894, #55efc4); 
+            color: white; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            box-shadow: 0 10px 25px rgba(0, 184, 148, 0.4);
+            margin-bottom: 10px;
+            transition: transform 0.3s;
+        }
+        .value-circle:hover { transform: scale(1.05); }
+        .val-num { font-size: 1.8em; font-weight: 800; line-height: 1; }
+        .val-label { font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-top: 5px;}
+        .demand-info { font-size: 1.1em; color: #636e72; font-weight: 600; background: #dfe6e9; padding: 5px 15px; border-radius: 20px; }
     </style>
 </head>
 <body>
@@ -83,8 +99,7 @@
             <input type="text" id="searchInput" data-lang-key="search_placeholder" placeholder="Tìm kiếm tên, rod, value..." onkeyup="filterData()">
             <div class="filter-section">
                 <div class="btn-row">
-                    <button id="mode-tier" class="mode-btn active" onclick="switchMode('tier')" data-lang-key="mode_tier">Xếp hạng (Tier)</button>
-                    <button id="mode-obtain" class="mode-btn" onclick="switchMode('obtain')" data-lang-key="mode_obtain">Cách nhận (Obtain)</button>
+                    <button id="mode-obtain" class="mode-btn active" onclick="switchMode('obtain')" data-lang-key="mode_obtain">Cách nhận</button>
                     <div class="separator"></div>
                     <button id="mode-official" class="mode-btn" onclick="switchMode('official')">Official Value</button>
                 </div>
@@ -95,8 +110,8 @@
                 </div>
 
                 <div class="btn-row" id="tabs-official" style="display: none;">
-                    <button id="tab-cosmetic" class="tab-btn active" onclick="switchTab('cosmetic')">Cosmetic</button>
-                    <button id="tab-fish" class="tab-btn" onclick="switchTab('fish')">Fish</button>
+                    <button id="tab-cosmetic" class="tab-btn active" onclick="switchTab('cosmetic')" data-lang-key="tab_cosmetic">Thời trang</button>
+                    <button id="tab-fish" class="tab-btn" onclick="switchTab('fish')" data-lang-key="tab_fish">Cá</button>
                 </div>
             </div>
         </div>
@@ -142,7 +157,7 @@
 
     <script>
         // ==========================================
-        // 0. CẤU HÌNH NGÔN NGỮ (DICTIONARY)
+        // 0. CẤU HÌNH NGÔN NGỮ
         // ==========================================
         const TRANSLATIONS = {
             vi: {
@@ -151,6 +166,10 @@
                 mode_obtain: "Cách nhận",
                 tab_boat: "Thuyền",
                 tab_skin: "Skin",
+                // Đã thêm 2 key mới
+                tab_cosmetic: "Thời trang",
+                tab_fish: "Cá",
+                
                 footer_text: "Phát triển và bảo trì bởi",
                 last_update: "Cập nhật cuối",
                 confirm_title: "⚠️ CẢNH BÁO",
@@ -178,7 +197,8 @@
                 error_proxy: "Không thể tải dữ liệu (Lỗi Proxy). Vui lòng thử lại sau.",
                 no_image: "📷 Không có ảnh",
                 img_game: "Trong Game",
-                img_menu: "Menu/Icon"
+                img_menu: "Menu/Icon",
+                val_label: "GIÁ TRỊ" // Label cho vòng tròn
             },
             en: {
                 search_placeholder: "Search name, rod, value...",
@@ -186,6 +206,10 @@
                 mode_obtain: "Obtain Method",
                 tab_boat: "Boats",
                 tab_skin: "Skins",
+                // Added keys
+                tab_cosmetic: "Cosmetic",
+                tab_fish: "Fish",
+
                 footer_text: "Created and Maintained by",
                 last_update: "Last Update",
                 confirm_title: "⚠️ WARNING",
@@ -213,18 +237,15 @@
                 error_proxy: "Failed to load data (Proxy Error). Please try again later.",
                 no_image: "📷 No Image",
                 img_game: "In-Game",
-                img_menu: "Menu/Icon"
+                img_menu: "Menu/Icon",
+                val_label: "VALUE"
             }
         };
 
         let currentLang = localStorage.getItem('fisch_lang') || 'vi';
 
-        // Hàm lấy text theo key và ngôn ngữ hiện tại
-        function t(key) {
-            return TRANSLATIONS[currentLang][key] || key;
-        }
+        function t(key) { return TRANSLATIONS[currentLang][key] || key; }
 
-        // Hàm đổi ngôn ngữ
         function toggleLanguage() {
             currentLang = (currentLang === 'vi') ? 'en' : 'vi';
             localStorage.setItem('fisch_lang', currentLang);
@@ -232,33 +253,21 @@
         }
 
         function applyLanguage() {
-            // Cập nhật nút
             document.getElementById('lang-btn').innerText = currentLang.toUpperCase();
-            
-            // Cập nhật các element tĩnh có data-lang-key
             document.querySelectorAll('[data-lang-key]').forEach(el => {
                 const key = el.getAttribute('data-lang-key');
-                if (el.tagName === 'INPUT') {
-                    el.placeholder = t(key);
-                } else {
-                    el.innerText = t(key);
-                }
+                if (el.tagName === 'INPUT') el.placeholder = t(key);
+                else el.innerText = t(key);
             });
-
-            // Cập nhật các phần động (Header, Modal nếu đang mở)
             updateHeaders();
             const modal = document.getElementById('info-modal');
             if (modal.classList.contains('open')) {
-                // Render lại modal nếu đang mở để cập nhật ngôn ngữ
                 const title = document.getElementById('modal-item-name').innerText;
-                const key = normalizeKey(title); // Logic tạm để tìm lại key, thực tế nên lưu key vào modal
+                const key = normalizeKey(title); 
                 if(imageCache[key]) renderModalContent(key); 
             }
         }
 
-        // ==========================================
-        // 1. CẤU HÌNH LIÊN KẾT
-        // ==========================================
         const SHEET_CONFIG = {
             tier_boat:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=0&single=true&output=csv',
             tier_skin:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqeggDsHCnG_nIouEmQYsC2C3_GkftknlXwuSXgEzgY7fU-lmTiRYYFJ6qsivS_wVcjP_vyPqFBhIL/pub?gid=701267659&single=true&output=csv',
@@ -274,13 +283,12 @@
             obtain_boat: { name: 0, val: 1 },       
             obtain_skin: { name: 0, rod: 1, val: 2 },
             official: { name: 0, val: 1, demand: 2, status: 3 },
-            images: { 
-                name: 0, img1: 1, img2: 2, wiki: 3, flag: 4, last_update: 6 
-            }, 
+            images: { name: 0, img1: 1, img2: 2, wiki: 3, flag: 4, last_update: 6 }, 
             q_flag: 16 
         };
 
-        let currentMode = 'tier';
+        // --- ĐỔI CHẾ ĐỘ MẶC ĐỊNH SANG 'obtain' ---
+        let currentMode = 'obtain'; 
         let currentTab  = 'boat';
         let imageCache = {}; 
         let dataCache = {};     
@@ -298,14 +306,11 @@
             }
         }
         window.addEventListener('load', () => {
-            applyLanguage(); // Áp dụng ngôn ngữ khi load
+            applyLanguage(); 
             updateStickyOffset();
         });
         window.addEventListener('resize', updateStickyOffset);
 
-        // ==========================================
-        // CACHING LOGIC
-        // ==========================================
         function getNextMondayTimestamp() {
             const d = new Date();
             d.setDate(d.getDate() + (1 + 7 - d.getDay()) % 7 || 7); 
@@ -314,10 +319,7 @@
         }
 
         function saveToCache(key, data) {
-            const cacheItem = {
-                data: data,
-                expiry: getNextMondayTimestamp()
-            };
+            const cacheItem = { data: data, expiry: getNextMondayTimestamp() };
             localStorage.setItem(`fisch_cache_${key}`, JSON.stringify(cacheItem));
         }
 
@@ -334,34 +336,19 @@
             } catch (e) { return null; }
         }
 
-        // ==========================================
-        // PROXY SYSTEM
-        // ==========================================
         async function fetchTextWithProxy(url) {
             const proxies = [
-                {
-                    name: "CodeTabs",
-                    getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
-                },
-                {
-                    name: "CorsLol",
-                    getUrl: (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}`
-                }
+                { name: "CodeTabs", getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
+                { name: "CorsLol", getUrl: (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}` }
             ];
-
             for (let proxy of proxies) {
                 try {
                     const res = await fetch(proxy.getUrl(url));
                     if (!res.ok) throw new Error(`Status ${res.status}`);
                     const content = await res.text();
-                    
-                    if (content.length < 500 || content.includes("Attention Required! | Cloudflare")) {
-                        throw new Error("Blocked by Cloudflare");
-                    }
+                    if (content.length < 500 || content.includes("Attention Required! | Cloudflare")) throw new Error("Blocked");
                     return content;
-                } catch (e) {
-                    continue; 
-                }
+                } catch (e) { continue; }
             }
             throw new Error("All proxies failed.");
         }
@@ -370,7 +357,6 @@
             let url = SHEET_CONFIG[key];
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
             const timeStamp = forceUpdate ? `&t=${Date.now()}` : '';
-
             if (key.includes('official')) {
                 try {
                     const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
@@ -383,7 +369,6 @@
                     }
                 } catch(e) { return null; }
             } 
-            
             try {
                 const res = await fetch(url + timeStamp);
                 if (!res.ok) throw new Error("CORS Blocked");
@@ -406,7 +391,7 @@
             }
             
             let sheetKey = (currentMode === 'official') ? `official_${currentTab}` : `${currentMode}_${currentTab}`;
-            updateHeaders(); // Cập nhật header theo ngôn ngữ
+            updateHeaders();
             
             const tabsStd = document.getElementById('tabs-standard');
             const tabsOff = document.getElementById('tabs-official');
@@ -458,7 +443,10 @@
                         wikiLink: wiki,
                         isBoat: (flag && flag.includes('boat')),
                         stats: null,
-                        fetched: false
+                        fetched: false,
+                        // Placeholders for sheet values
+                        sheetVal: null,
+                        sheetDemand: null
                     };
                 }
             });
@@ -528,16 +516,28 @@
                     const key = normalizeKey(name);
                     const itemData = imageCache[key];
                     
+                    // --- SAVE SHEET DATA TO CACHE FOR MODAL ---
                     if (itemData) {
+                        // Logic xác định Value/Demand dựa trên chế độ
+                        let displayVal = 'N/A';
+                        let displayDemand = '';
+
+                        if (currentMode === 'official') {
+                            displayVal = col2; displayDemand = col3;
+                        } else if (currentTab === 'skin') {
+                            displayVal = col3; displayDemand = col2; // Skin: Col2 là Rod (hiện thay Demand)
+                        } else {
+                            displayVal = col3; displayDemand = ''; // Boat: Col3 là Price
+                        }
+                        
+                        itemData.sheetVal = displayVal;
+                        itemData.sheetDemand = displayDemand;
+
                         if (itemData.isBoat && itemData.wikiLink) {
                             interactionHtml = `<span class="hover-wrapper click-trigger" onclick="openModal('${key.replace(/'/g, "\\'")}')">${name}</span>`;
                         } else if (itemData.urls.length > 0) {
                             const imgsJson = JSON.stringify(itemData.urls).replace(/"/g, '&quot;');
-                            interactionHtml = `
-                                <span class="hover-wrapper hover-trigger" onmouseenter="lazyLoadImg(this)" onmouseleave="hideImg(this)" data-imgs="${imgsJson}">
-                                    ${name}
-                                    <div class="hover-images"></div>
-                                </span>`;
+                            interactionHtml = `<span class="hover-wrapper hover-trigger" onmouseenter="lazyLoadImg(this)" onmouseleave="hideImg(this)" data-imgs="${imgsJson}">${name}<div class="hover-images"></div></span>`;
                         } else { interactionHtml = name; }
                     } else { interactionHtml = name; }
 
@@ -558,21 +558,18 @@
         }
 
         // ==========================================
-        // AUTO-SCRAPER
+        // AUTO-SCRAPER FUNCTIONS (SAME AS BEFORE)
         // ==========================================
         function getFischStats(doc, label) {
             const headings = doc.querySelectorAll('.data-heading');
             for (let h of headings) {
                 if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) {
                     let sibling = h.nextElementSibling;
-                    if (sibling && sibling.classList.contains('data-content')) {
-                         return sibling.textContent.trim();
-                    }
+                    if (sibling && sibling.classList.contains('data-content')) return sibling.textContent.trim();
                 }
             }
             return '?';
         }
-
         function getFischPrice(doc) {
             const headings = doc.querySelectorAll('.data-heading');
             for (let h of headings) {
@@ -581,16 +578,13 @@
                     if (contentNode) {
                         const isRobux = contentNode.querySelector('img[alt*="Robux"], span[title="Robux"]');
                         let priceText = contentNode.textContent.trim();
-                        if (isRobux) {
-                            return priceText + " Robux";
-                        }
+                        if (isRobux) return priceText + " Robux";
                         return priceText;
                     }
                 }
             }
             return '?';
         }
-
         async function fetchHighResImage(filePageUrl) {
             if (!filePageUrl) return null;
             try {
@@ -598,7 +592,6 @@
                 const html = await fetchTextWithProxy(fullUrl);
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
-                
                 const link = doc.querySelector('.fullImageLink a');
                 if (link) {
                     let src = link.getAttribute('href');
@@ -616,7 +609,6 @@
             const data = imageCache[itemKey]; 
             
             if (!data) return;
-            
             modal.classList.add('open');
             title.innerText = data.nameDisplay;
 
@@ -625,17 +617,12 @@
                 data.stats = cachedData.stats;
                 data.urls = cachedData.urls;
                 data.fetched = true;
-                renderModalContent(itemKey); // Render sẽ dùng hàm t() để dịch
+                renderModalContent(itemKey); 
                 return;
             }
 
             if ((!data.fetched || (data.stats && data.stats.speed === 'Error')) && data.wikiLink) {
-                modalBody.innerHTML = `
-                    <div class="modal-loading">
-                        <div class="spinner"></div>
-                        <div>${t('modal_loading')}</div>
-                        <small style="font-size:0.8em; opacity:0.7">${t('modal_loading_sub')}</small>
-                    </div>`;
+                modalBody.innerHTML = `<div class="modal-loading"><div class="spinner"></div><div>${t('modal_loading')}</div><small style="font-size:0.8em; opacity:0.7">${t('modal_loading_sub')}</small></div>`;
                 await scrapeWikiData(itemKey, data.wikiLink);
             }
             renderModalContent(itemKey);
@@ -648,7 +635,6 @@
                      let pageName = imageCache[itemKey].nameDisplay.replace(/ /g, '_');
                      targetUrl = `https://fischipedia.org/wiki/${pageName}`;
                 }
-
                 const html = await fetchTextWithProxy(targetUrl);
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
@@ -661,9 +647,7 @@
                     price: getFischPrice(doc)
                 };
                 
-                let gameImgFileUrl = null;
-                let menuImgFileUrl = null;
-
+                let gameImgFileUrl = null, menuImgFileUrl = null;
                 const tables = doc.querySelectorAll('table.wikitable');
                 tables.forEach(table => {
                     const headers = table.querySelectorAll('th');
@@ -681,19 +665,15 @@
                         }
                     });
                 });
-
                 if (!menuImgFileUrl) {
                     const mainThumb = doc.querySelector('.infobox-image a.image');
                     if (mainThumb) menuImgFileUrl = mainThumb.getAttribute('href');
                 }
-
                 const [imgGame, imgMenu] = await Promise.all([
                     fetchHighResImage(gameImgFileUrl),
                     fetchHighResImage(menuImgFileUrl)
                 ]);
-
                 const finalUrls = [imgGame, imgMenu].filter(u => u);
-                
                 if (finalUrls.length === 0) {
                      const thumbs = doc.querySelectorAll('.infobox-image img, .wikitable img');
                      thumbs.forEach(img => {
@@ -705,16 +685,12 @@
                          }
                      });
                 }
-
                 const uniqueUrls = [...new Set(finalUrls)];
-
                 const dataToCache = { stats: stats, urls: uniqueUrls };
                 saveToCache(itemKey, dataToCache);
-
                 imageCache[itemKey].stats = stats;
                 if (uniqueUrls.length > 0) imageCache[itemKey].urls = uniqueUrls;
                 imageCache[itemKey].fetched = true;
-
             } catch (err) {
                 console.error("[Scraper] Error:", err);
                 imageCache[itemKey].stats = { speed: 'Error', turn: 'Error', accel: 'Error', seat: 'Error' };
@@ -722,9 +698,8 @@
             }
         }
 
-        // --- HÀM RENDER MODAL CẬP NHẬT ĐA NGÔN NGỮ ---
+        // --- NEW MODAL RENDER FUNCTION ---
         function renderModalContent(itemKey) {
-            // Nhận key thay vì object data để lấy lại data từ cache và dịch lại
             const data = (typeof itemKey === 'string') ? imageCache[itemKey] : itemKey;
             const modalBody = document.getElementById('modal-body-content');
             if (!data) return;
@@ -734,25 +709,31 @@
                 data.urls.forEach((url, index) => { 
                     let label = t('no_image');
                     if (data.urls.length > 1) label = (index === 0) ? t('img_game') : t('img_menu'); 
-                    imgHtml += `
-                        <div class="img-box">
-                            <img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=No+Image'">
-                            <span class="img-label">${label}</span>
-                        </div>`; 
+                    imgHtml += `<div class="img-box"><img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=No+Image'"><span class="img-label">${label}</span></div>`; 
                 });
             } else { 
-                imgHtml = `
-                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:200px; color:#999;">
-                        <span>${t('no_image')}</span>
-                    </div>`; 
+                imgHtml = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:200px; color:#999;"><span>${t('no_image')}</span></div>`; 
             }
 
             const s = data.stats || { speed: '?', turn: '?', accel: '?', seat: '?' };
             const isError = s.speed === 'Error';
 
+            // --- INFO CIRCLE LOGIC ---
+            // Display Value inside circle, Demand below
+            const displayValue = data.sheetVal || 'N/A';
+            const displayDemand = data.sheetDemand || '';
+
             modalBody.innerHTML = `
                 <div class="modal-left" id="modal-images-container">${imgHtml}</div>
                 <div class="modal-right">
+                    <div class="modal-header-info">
+                        <div class="value-circle">
+                            <span class="val-num">${displayValue}</span>
+                            <span class="val-label">${t('val_label')}</span>
+                        </div>
+                        ${displayDemand ? `<div class="demand-info">${displayDemand}</div>` : ''}
+                    </div>
+
                     <div class="modal-title">
                         ${t('modal_title_wiki')} 
                         ${isError ? '<span style="color:red; font-size:0.6em">(Error)</span>' : ''}
@@ -783,20 +764,13 @@
             const btn = document.getElementById('refresh-btn');
             btn.style.transform = 'rotate(360deg)';
             setTimeout(() => btn.style.transform = '', 500);
-
             let sheetKey = (currentMode === 'official') ? `official_${currentTab}` : `${currentMode}_${currentTab}`;
             dataCache[sheetKey] = null;
-
-            Object.keys(localStorage).forEach(key => {
-                if(key.startsWith('fisch_cache_')) localStorage.removeItem(key);
-            });
-
+            Object.keys(localStorage).forEach(key => { if(key.startsWith('fisch_cache_')) localStorage.removeItem(key); });
             loadAll(true);
         }
-
         function closeModal(event) { document.getElementById('info-modal').classList.remove('open'); }
-
-        window.lazyLoadImg = function(el) {
+        window.lazyLoadImg = function(el) { /* Same as old */
             const container = el.querySelector('.hover-images');
             if (container.classList.contains('active')) return;
             const imgsData = el.getAttribute('data-imgs');
@@ -814,7 +788,6 @@
             }
         }
         window.hideImg = function(el) { const container = el.querySelector('.hover-images'); if (container) { container.classList.remove('active'); } }
-
         function switchMode(mode) {
             currentMode = mode;
             if (mode === 'official') { currentTab = 'cosmetic'; } else { currentTab = 'boat'; }
@@ -826,7 +799,6 @@
             loadAll(false);
             window.scrollTo(0, 0); 
         }
-
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -834,7 +806,6 @@
             loadAll(false);
             window.scrollTo(0, 0); 
         }
-
         function filterData() {
             const filter = document.getElementById('searchInput').value.toUpperCase().trim();
             const items = document.querySelectorAll('.item-entry');
@@ -854,9 +825,6 @@
             });
             updateStickyOffset();
         }
-        
-        // Init
-        loadAll(); // Đã có window.load gọi
     </script>
 </body>
 </html>
