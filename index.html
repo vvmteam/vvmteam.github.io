@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Fisch (v13.2 - New Columns)</title>
+    <title>Wiki Fisch (v14.0 - Price Added)</title>
     <style>
         /* --- CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -145,19 +145,13 @@
             official_fish:     'https://docs.google.com/spreadsheets/d/1saOLjcowAxI1vkJZkwtgFMAEtmurA68zhCguQN0oBMY/edit?gid=1767682450#gid=1767682450'
         };
 
-        // --- CẬP NHẬT CỘT MỚI ---
         const COL_MAP = {
             tier:   { name: 0, val: 1, demand: 2 }, 
             obtain_boat: { name: 0, val: 1 },       
             obtain_skin: { name: 0, rod: 1, val: 2 },
             official: { name: 0, val: 1, demand: 2, status: 3 },
             images: { 
-                name: 0, 
-                img1: 1, 
-                img2: 2, 
-                wiki: 3,  // Cột D
-                flag: 4,  // Cột E
-                last_update: 6 // Cột G
+                name: 0, img1: 1, img2: 2, wiki: 3, flag: 4, last_update: 6
             }, 
             q_flag: 16 
         };
@@ -319,7 +313,6 @@
             const lines = csv.split('\n');
             if (lines.length > 0) {
                 const firstRowCols = splitCSV(lines[0]);
-                // Cập nhật lấy ngày từ cột G (Index 6)
                 const dateVal = firstRowCols[COL_MAP.images.last_update];
                 document.getElementById('last-update').innerText = dateVal ? dateVal : "Unknown";
             }
@@ -329,7 +322,6 @@
                 if (name) {
                     const img1 = cols[COL_MAP.images.img1]?.trim();
                     const img2 = cols[COL_MAP.images.img2]?.trim();
-                    // Lấy link wiki và flag từ cột mới
                     const wiki = cols[COL_MAP.images.wiki]?.trim();
                     const flag = cols[COL_MAP.images.flag]?.trim().toLowerCase();
                     const key = normalizeKey(name);
@@ -440,7 +432,7 @@
         }
 
         // ==========================================
-        // AUTO-SCRAPER (HIGH-RES + NESTED)
+        // AUTO-SCRAPER WITH PRICE
         // ==========================================
         function getFischStats(doc, label) {
             const headings = doc.querySelectorAll('.data-heading');
@@ -449,6 +441,28 @@
                     let sibling = h.nextElementSibling;
                     if (sibling && sibling.classList.contains('data-content')) {
                          return sibling.textContent.trim();
+                    }
+                }
+            }
+            return '?';
+        }
+
+        // --- HÀM MỚI: LẤY GIÁ VÀ KIỂM TRA ROBUX ---
+        function getFischPrice(doc) {
+            const headings = doc.querySelectorAll('.data-heading');
+            for (let h of headings) {
+                if (h.textContent.trim().toLowerCase() === 'price') {
+                    let contentNode = h.nextElementSibling;
+                    if (contentNode) {
+                        // Kiểm tra icon Robux (img có alt hoặc title chứa Robux)
+                        const isRobux = contentNode.querySelector('img[alt*="Robux"], span[title="Robux"]');
+                        // Lấy text thuần (loại bỏ tag)
+                        let priceText = contentNode.textContent.trim();
+                        
+                        if (isRobux) {
+                            return priceText + " Robux";
+                        }
+                        return priceText;
                     }
                 }
             }
@@ -521,7 +535,8 @@
                     speed: getFischStats(doc, 'Speed'),
                     turn:  getFischStats(doc, 'Steering'),
                     accel: getFischStats(doc, 'Acceleration'),
-                    seat:  getFischStats(doc, 'Seats')
+                    seat:  getFischStats(doc, 'Seats'),
+                    price: getFischPrice(doc) // Thêm lấy giá
                 };
                 
                 let gameImgFileUrl = null;
@@ -621,6 +636,7 @@
                     <div id="modal-stats-container">
                         ${isError ? '<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">Không thể tải dữ liệu (Proxy chặn).</div>' : ''}
                         
+                        <div class="stat-row"><span class="stat-label">Giá (Price):</span> <span class="stat-value" style="color:#e17055">${s.price || '?'}</span></div>
                         <div class="stat-row"><span class="stat-label">Tốc độ (Speed):</span> <span class="stat-value">${s.speed}</span></div>
                         <div class="stat-row"><span class="stat-label">Bẻ lái (Steering):</span> <span class="stat-value">${s.turn}</span></div>
                         <div class="stat-row"><span class="stat-label">Gia tốc (Accel):</span> <span class="stat-value">${s.accel}</span></div>
