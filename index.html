@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Value (v18.0 - Skins Update)</title>
+    <title>Fisch Value (v18.2 - Flag Logic Fix)</title>
     <style>
         /* --- CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -37,15 +37,6 @@
         .hover-images.single-img { grid-template-columns: 1fr; width: 280px; }
         .hover-images.double-img { grid-template-columns: 1fr 1fr; width: 500px; }
         
-        /* FLOATING BUTTONS */
-        .floating-btn { position: fixed; right: 30px; z-index: 9999; width: 50px; height: 50px; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: 0.3s; color: white; }
-        .floating-btn:hover { transform: scale(1.1); }
-        #refresh-btn { bottom: 30px; background: #d63031; }
-        #lang-btn { bottom: 90px; background: #0984e3; font-size: 20px; font-weight: bold; }
-
-        .site-footer { text-align: center; padding: 40px 20px 80px 20px; color: #636e72; font-size: 14px; margin-top: 30px; border-top: 1px solid #dfe6e9; background-color: #ebedef; }
-        .site-footer b { color: #2d3436; font-weight: 700; }
-
         /* MODAL STYLES */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 20000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
         .modal-overlay.open { display: flex; opacity: 1; }
@@ -64,7 +55,6 @@
         .modal-left::-webkit-scrollbar-thumb { background-color: #b2bec3; border-radius: 10px; }
         .modal-right { flex: 1; border-left: 1px solid #eee; padding-left: 20px; overflow-y: auto; }
         
-        /* Modal Responsive */
         @media (max-width: 768px) { 
             .modal-content { max-height: 95vh; }
             .modal-body { flex-direction: column; overflow-y: auto; padding: 15px; } 
@@ -86,27 +76,41 @@
         .img-box img { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); object-fit: contain; max-height: 300px; }
         .img-label { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; white-space: nowrap; pointer-events: none; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* FLOATING BUTTONS */
+        .floating-btn { position: fixed; right: 30px; z-index: 9999; width: 50px; height: 50px; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: 0.3s; color: white; }
+        .floating-btn:hover { transform: scale(1.1); }
+        #refresh-btn { bottom: 30px; background: #d63031; }
+        #lang-btn { bottom: 90px; background: #0984e3; font-size: 20px; font-weight: bold; }
 
-        /* CIRCLE VALUE */
-        .modal-header-info { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-        .value-circle { 
-            width: 140px; height: 140px; border-radius: 50%; color: white; 
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); margin-bottom: 10px;
-            transition: transform 0.3s; text-align: center; padding: 5px; overflow: hidden;
-        }
-        .value-circle:hover { transform: scale(1.05); }
-        .val-num { font-size: 2em; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .val-note { font-size: 0.35em; margin-top: 5px; opacity: 0.9; line-height: 1.2; white-space: normal; max-width: 90%; }
-        .demand-info { font-size: 1.1em; color: #636e72; font-weight: 600; background: #dfe6e9; padding: 5px 15px; border-radius: 20px; }
+        .site-footer { text-align: center; padding: 40px 20px 80px 20px; color: #636e72; font-size: 14px; margin-top: 30px; border-top: 1px solid #dfe6e9; background-color: #ebedef; }
+        .site-footer b { color: #2d3436; font-weight: 700; }
 
-        /* CONFIRM MODAL */
         #confirm-modal .modal-content { max-width: 400px; text-align: center; overflow: visible; }
         #confirm-modal .modal-header { background: #d63031; color: white; justify-content: center; padding: 15px; }
         #confirm-modal .modal-body { flex-direction: column; gap: 15px; padding: 25px 20px; overflow: visible; height: auto; }
         .confirm-btn { padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-size: 15px; }
         .btn-yes { background: #d63031; color: white; }
         .btn-no { background: #636e72; color: white; }
+
+        /* --- CIRCLE VALUE --- */
+        .modal-header-info { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .value-circle { 
+            width: 140px; height: 140px; 
+            border-radius: 50%; 
+            color: white; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            margin-bottom: 10px;
+            transition: transform 0.3s;
+            text-align: center;
+            padding: 5px;
+            overflow: hidden;
+        }
+        .value-circle:hover { transform: scale(1.05); }
+        .val-num { font-size: 2em; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .val-note { font-size: 0.35em; margin-top: 5px; opacity: 0.9; line-height: 1.2; white-space: normal; max-width: 90%; }
+        .demand-info { font-size: 1.1em; color: #636e72; font-weight: 600; background: #dfe6e9; padding: 5px 15px; border-radius: 20px; }
     </style>
 </head>
 <body>
@@ -199,7 +203,7 @@
                 stat_turn: "Bẻ lái",
                 stat_accel: "Gia tốc",
                 stat_seat: "Chỗ ngồi",
-                modal_title_wiki: "Thông số (Wiki)",
+                modal_title_wiki: "Thông số (Fischipedia)",
                 modal_loading: "Đang tải dữ liệu...",
                 modal_loading_sub: "Sẽ không tải lại cho đến thứ 2 tuần sau",
                 open_wiki: "Mở Fischipedia.org",
@@ -234,7 +238,7 @@
                 stat_turn: "Steering",
                 stat_accel: "Acceleration",
                 stat_seat: "Seats",
-                modal_title_wiki: "Stats (Wiki)",
+                modal_title_wiki: "Stats (Fischipedia)",
                 modal_loading: "Loading data...",
                 modal_loading_sub: "Will not reload until next Monday",
                 open_wiki: "Open Fischipedia.org",
@@ -430,21 +434,14 @@
                     const wiki = cols[COL_MAP.images.wiki]?.trim();
                     const flag = cols[COL_MAP.images.flag]?.trim().toLowerCase();
                     const key = normalizeKey(name);
-                    
-                    // Thêm đọc tên phụ (alt_name) từ cột C (index 2 - lưu ý: COL_MAP.images.img2 = 2)
-                    // Cấu trúc mới: Name(0), Img1(1), AltName(2), Wiki(3), Flag(4)
-                    // Cần điều chỉnh logic index nếu cột thay đổi. Dựa trên code trước:
-                    // images: { name: 0, img1: 1, img2: 2, wiki: 3, flag: 4, last_update: 6 }
-                    // => Cột C (Index 2) vừa là img2 cũ, vừa là AltName mới.
                     const altName = cols[COL_MAP.images.img2]?.trim(); 
-
                     imageCache[key] = {
                         nameDisplay: name,
                         nameAlt: altName,
-                        urls: [img1].filter(url => url && url.length > 5), // img2 giờ là altName nên chỉ lấy img1 làm backup
+                        urls: [img1].filter(url => url && url.length > 5), 
                         wikiLink: wiki,
                         isBoat: (flag && flag.includes('boat')),
-                        isSkin: (flag && flag.includes('skin')), // Flag skin
+                        isSkin: (flag && flag.includes('skin')),
                         stats: null,
                         fetched: false,
                         sheetVal: null,
@@ -525,8 +522,13 @@
                         itemData.sheetVal = displayVal;
                         itemData.sheetDemand = displayDemand;
                         
-                        // Kích hoạt click cho cả Boat và Skin
-                        if ((itemData.isBoat || itemData.isSkin) && itemData.wikiLink) {
+                        // LOGIC CLICK ĐÃ SỬA:
+                        // Nếu là Boat: Cần flag 'boat' + WikiLink (Col D)
+                        // Nếu là Skin: Cần flag 'skin' (Không cần Link)
+                        const isClickableBoat = itemData.isBoat && itemData.wikiLink;
+                        const isClickableSkin = itemData.isSkin;
+
+                        if (isClickableBoat || isClickableSkin) {
                             interactionHtml = `<span class="hover-wrapper click-trigger" onclick="openModal('${key.replace(/'/g, "\\'")}')">${name}</span>`;
                         } else if (itemData.urls.length > 0) {
                             const imgsJson = JSON.stringify(itemData.urls).replace(/"/g, '&quot;');
@@ -574,7 +576,6 @@
             if (data.urls && data.urls.length > 0) {
                 data.urls.forEach((url, index) => { 
                     let label = t('no_image');
-                    // Logic label cho Skin: Chỉ có 1 ảnh 400px
                     if (data.isSkin) label = "Skin"; 
                     else if (data.urls.length > 1) label = (index === 0) ? t('img_game') : t('img_menu'); 
                     imgHtml += `<div class="img-box"><img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=No+Image'"><span class="img-label">${label}</span></div>`; 
@@ -590,7 +591,6 @@
             const bgStyle = getValueColor(parsedVal.main);
             const displayDemand = data.sheetDemand || '';
 
-            // Nếu là Skin, ẩn bảng stats, chỉ hiện tên Rod
             const statsSection = data.isSkin ? '' : `
                 <div class="stat-row"><span class="stat-label">${t('stat_price')}:</span> <span class="stat-value" style="color:#e17055">${s.price || '?'}</span></div>
                 <div class="stat-row"><span class="stat-label">${t('stat_speed')}:</span> <span class="stat-value">${s.speed}</span></div>
@@ -609,17 +609,13 @@
                         </div>
                         ${displayDemand ? `<div class="demand-info">${displayDemand}</div>` : ''}
                     </div>
-                    
                     <div class="modal-title">
                         ${t('modal_title_wiki')} 
                         ${isError && !data.isSkin ? '<span style="color:red; font-size:0.6em">(Error)</span>' : ''}
                     </div>
-                    
                     <div id="modal-stats-container">
                         ${isError && !data.isSkin ? `<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">${t('error_proxy')}</div>` : ''}
-                        
                         ${statsSection}
-                        
                         <div style="margin-top:20px; font-size:0.9em; text-align:right">
                             <a href="${data.wikiLink || 'https://fischipedia.org'}" target="_blank" style="color:white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">${t('open_wiki')} ↗</a>
                         </div>
@@ -629,9 +625,9 @@
         }
 
         // --- SCRAPER ---
-        function getFischStats(doc, label) { /*...*/ const headings = doc.querySelectorAll('.data-heading'); for (let h of headings) { if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) { let sibling = h.nextElementSibling; if (sibling && sibling.classList.contains('data-content')) return sibling.textContent.trim(); } } return '?'; }
-        function getFischPrice(doc) { /*...*/ const headings = doc.querySelectorAll('.data-heading'); for (let h of headings) { if (h.textContent.trim().toLowerCase() === 'price') { let contentNode = h.nextElementSibling; if (contentNode) { const isRobux = contentNode.querySelector('img[alt*="Robux"], span[title="Robux"]'); let priceText = contentNode.textContent.trim(); if (isRobux) return priceText + " Robux"; return priceText; } } } return '?'; }
-        async function fetchHighResImage(filePageUrl) { /*...*/ if (!filePageUrl) return null; try { const fullUrl = "https://fischipedia.org" + filePageUrl; const html = await fetchTextWithProxy(fullUrl); const parser = new DOMParser(); const doc = parser.parseFromString(html, 'text/html'); const link = doc.querySelector('.fullImageLink a'); if (link) { let src = link.getAttribute('href'); if (src.startsWith('//')) src = 'https:' + src; return src; } } catch(e) {} return null; }
+        function getFischStats(doc, label) { const headings = doc.querySelectorAll('.data-heading'); for (let h of headings) { if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) { let sibling = h.nextElementSibling; if (sibling && sibling.classList.contains('data-content')) return sibling.textContent.trim(); } } return '?'; }
+        function getFischPrice(doc) { const headings = doc.querySelectorAll('.data-heading'); for (let h of headings) { if (h.textContent.trim().toLowerCase() === 'price') { let contentNode = h.nextElementSibling; if (contentNode) { const isRobux = contentNode.querySelector('img[alt*="Robux"], span[title="Robux"]'); let priceText = contentNode.textContent.trim(); if (isRobux) return priceText + " Robux"; return priceText; } } } return '?'; }
+        async function fetchHighResImage(filePageUrl) { if (!filePageUrl) return null; try { const fullUrl = "https://fischipedia.org" + filePageUrl; const html = await fetchTextWithProxy(fullUrl); const parser = new DOMParser(); const doc = parser.parseFromString(html, 'text/html'); const link = doc.querySelector('.fullImageLink a'); if (link) { let src = link.getAttribute('href'); if (src.startsWith('//')) src = 'https:' + src; return src; } } catch(e) {} return null; }
         async function openModal(itemKey) {
             const modal = document.getElementById('info-modal');
             const modalBody = document.getElementById('modal-body-content');
@@ -648,7 +644,7 @@
                 renderModalContent(itemKey);
                 return;
             }
-            if ((!data.fetched || (data.stats && data.stats.speed === 'Error')) && data.wikiLink) {
+            if ((!data.fetched || (data.stats && data.stats.speed === 'Error')) && (data.wikiLink || data.isSkin)) {
                 modalBody.innerHTML = `<div class="modal-loading"><div class="spinner"></div><div>${t('modal_loading')}</div><small style="font-size:0.8em; opacity:0.7">${t('modal_loading_sub')}</small></div>`;
                 await scrapeWikiData(itemKey, data.wikiLink);
             }
@@ -657,7 +653,6 @@
         
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
-                // LOGIC RIÊNG CHO SKIN
                 if (imageCache[itemKey].isSkin) {
                     const skinUrl = "https://fischipedia.org/wiki/Skins";
                     const html = await fetchTextWithProxy(skinUrl);
@@ -673,7 +668,6 @@
                         const title = (img.closest('a')?.getAttribute('title') || '').toLowerCase();
                         
                         if (targetNames.some(n => alt === n || title === n)) {
-                            // Logic tìm ảnh 400px
                             const srcset = img.getAttribute('srcset') || '';
                             if (srcset.includes('400px-')) {
                                 const match = srcset.match(/(\/\/[\w.-]+\/fischwiki\/thumb\/[^ ]+\/400px-[^ ]+\.png)/);
@@ -698,13 +692,11 @@
                         imageCache[itemKey].urls = [foundSrc];
                         imageCache[itemKey].fetched = true;
                     } else {
-                        // Không tìm thấy ảnh skin
-                        imageCache[itemKey].fetched = true; // Đánh dấu đã tìm để không tìm lại
+                        imageCache[itemKey].fetched = true; 
                     }
-                    return; // Kết thúc logic Skin
+                    return; 
                 }
 
-                // LOGIC CŨ CHO BOAT (GIỮ NGUYÊN)
                 let targetUrl = wikiUrl;
                 if (!targetUrl.includes('fischipedia.org')) {
                      let pageName = imageCache[itemKey].nameDisplay.replace(/ /g, '_');
