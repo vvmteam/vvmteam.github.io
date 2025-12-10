@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Value (v17.1 - Mobile Fix)</title>
+    <title>Fisch Value (v18.0 - Skins Update)</title>
     <style>
-        /* --- CẤU HÌNH GIAO DIỆN CHUNG --- */
+        /* --- CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
         #sticky-wrapper { position: sticky; top: 0; z-index: 10000; background: rgba(235, 237, 239, 0.95); backdrop-filter: blur(10px); padding-top: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: all 0.2s; }
         .controls { text-align: center; margin-bottom: 10px; padding: 0 20px; }
@@ -37,66 +37,6 @@
         .hover-images.single-img { grid-template-columns: 1fr; width: 280px; }
         .hover-images.double-img { grid-template-columns: 1fr 1fr; width: 500px; }
         
-        /* MODAL STYLES */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 20000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
-        .modal-overlay.open { display: flex; opacity: 1; }
-        .modal-content { background: white; width: 95%; max-width: 900px; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; }
-        .modal-overlay.open .modal-content { transform: scale(1); }
-        .modal-header { padding: 15px 20px; background: #2d3436; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        .close-modal-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        
-        /* Modal Body PC */
-        .modal-body { display: flex; padding: 20px; gap: 20px; overflow: hidden; height: 100%; }
-        .modal-left { 
-            flex: 1.5; display: flex; flex-direction: column; gap: 15px; 
-            background-color: #f8f9fa; border-radius: 12px; padding: 15px; 
-            overflow-y: auto; /* Cho phép cuộn riêng phần ảnh nếu quá nhiều trên PC */
-        }
-        .modal-left::-webkit-scrollbar { width: 6px; }
-        .modal-left::-webkit-scrollbar-thumb { background-color: #b2bec3; border-radius: 10px; }
-        
-        .modal-right { flex: 1; border-left: 1px solid #eee; padding-left: 20px; overflow-y: auto; }
-        
-        .modal-title { font-size: 1.2em; font-weight: 800; color: #2d3436; margin-bottom: 15px; border-bottom: 2px solid #0984e3; padding-bottom: 5px; display: inline-block; }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1em; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
-        .stat-label { color: #636e72; font-weight: 600; }
-        .stat-value { font-weight: 700; color: #2d3436; font-family: 'Consolas', monospace; }
-        .modal-loading { text-align: center; padding: 50px; font-size: 1.2em; color: #636e72; width: 100%; }
-        .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: #0984e3; animation: spin 1s ease-in-out infinite; margin-bottom: 10px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* --- RESPONSIVE FIX (MOBILE) --- */
-        @media (max-width: 768px) { 
-            .modal-content { max-height: 95vh; }
-            .modal-body { 
-                flex-direction: column; 
-                overflow-y: auto; /* Cho phép cuộn toàn bộ body */
-                padding: 15px;
-            } 
-            .modal-left { 
-                width: 100%; 
-                flex: none; 
-                height: auto; /* Tự động giãn theo nội dung */
-                overflow: visible; /* Không ẩn ảnh thừa */
-                margin-bottom: 20px;
-            }
-            .modal-right { 
-                border-left: none; 
-                border-top: 1px solid #eee; 
-                padding-left: 0; 
-                padding-top: 20px; 
-                overflow: visible;
-                flex: none;
-            } 
-            .value-circle { width: 100px; height: 100px; } /* Thu nhỏ vòng tròn chút trên mobile */
-            .val-num { font-size: 1.5em; }
-        }
-
-        .img-box { width: 100%; display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 10px; }
-        .img-box img { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); object-fit: contain; max-height: 300px; }
-        .img-label { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; white-space: nowrap; pointer-events: none; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         /* FLOATING BUTTONS */
         .floating-btn { position: fixed; right: 30px; z-index: 9999; width: 50px; height: 50px; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: 0.3s; color: white; }
         .floating-btn:hover { transform: scale(1.1); }
@@ -107,38 +47,66 @@
         .site-footer b { color: #2d3436; font-weight: 700; }
 
         /* MODAL STYLES */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 20000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
+        .modal-overlay.open { display: flex; opacity: 1; }
+        .modal-content { background: white; width: 95%; max-width: 900px; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; }
+        .modal-overlay.open .modal-content { transform: scale(1); }
+        .modal-header { padding: 15px 20px; background: #2d3436; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .close-modal-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        
+        .modal-body { display: flex; padding: 20px; gap: 20px; overflow-y: hidden; max-height: 80vh; }
+        .modal-left { 
+            flex: 1.5; display: flex; flex-direction: column; gap: 15px; 
+            background-color: #f8f9fa; border-radius: 12px; padding: 15px; 
+            overflow-y: auto; justify-content: center; align-items: center;
+        }
+        .modal-left::-webkit-scrollbar { width: 6px; }
+        .modal-left::-webkit-scrollbar-thumb { background-color: #b2bec3; border-radius: 10px; }
+        .modal-right { flex: 1; border-left: 1px solid #eee; padding-left: 20px; overflow-y: auto; }
+        
+        /* Modal Responsive */
+        @media (max-width: 768px) { 
+            .modal-content { max-height: 95vh; }
+            .modal-body { flex-direction: column; overflow-y: auto; padding: 15px; } 
+            .modal-left { width: 100%; flex: none; height: auto; overflow: visible; margin-bottom: 20px; min-height: 200px; }
+            .modal-right { border-left: none; border-top: 1px solid #eee; padding-left: 0; padding-top: 20px; overflow: visible; flex: none; } 
+            .value-circle { width: 100px; height: 100px; } 
+            .val-num { font-size: 1.5em; }
+        }
+
+        .modal-title { font-size: 1.2em; font-weight: 800; color: #2d3436; margin-bottom: 15px; border-bottom: 2px solid #0984e3; padding-bottom: 5px; display: inline-block; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1em; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+        .stat-label { color: #636e72; font-weight: 600; }
+        .stat-value { font-weight: 700; color: #2d3436; font-family: 'Consolas', monospace; }
+        .modal-loading { text-align: center; padding: 50px; font-size: 1.2em; color: #636e72; width: 100%; }
+        .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: #0984e3; animation: spin 1s ease-in-out infinite; margin-bottom: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .img-box { width: 100%; display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 10px; }
+        .img-box img { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); object-fit: contain; max-height: 300px; }
+        .img-label { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; white-space: nowrap; pointer-events: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* CIRCLE VALUE */
+        .modal-header-info { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .value-circle { 
+            width: 140px; height: 140px; border-radius: 50%; color: white; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); margin-bottom: 10px;
+            transition: transform 0.3s; text-align: center; padding: 5px; overflow: hidden;
+        }
+        .value-circle:hover { transform: scale(1.05); }
+        .val-num { font-size: 2em; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .val-note { font-size: 0.35em; margin-top: 5px; opacity: 0.9; line-height: 1.2; white-space: normal; max-width: 90%; }
+        .demand-info { font-size: 1.1em; color: #636e72; font-weight: 600; background: #dfe6e9; padding: 5px 15px; border-radius: 20px; }
+
+        /* CONFIRM MODAL */
         #confirm-modal .modal-content { max-width: 400px; text-align: center; overflow: visible; }
         #confirm-modal .modal-header { background: #d63031; color: white; justify-content: center; padding: 15px; }
         #confirm-modal .modal-body { flex-direction: column; gap: 15px; padding: 25px 20px; overflow: visible; height: auto; }
         .confirm-btn { padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-size: 15px; }
         .btn-yes { background: #d63031; color: white; }
         .btn-no { background: #636e72; color: white; }
-
-        /* --- CIRCLE VALUE --- */
-        .modal-header-info { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-        .value-circle { 
-            width: 140px; height: 140px; 
-            border-radius: 50%; 
-            color: white; 
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            margin-bottom: 10px;
-            transition: transform 0.3s;
-            text-align: center;
-            padding: 5px;
-            overflow: hidden;
-        }
-        .value-circle:hover { transform: scale(1.05); }
-        .val-num { font-size: 2em; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .val-note { 
-            font-size: 0.35em;
-            margin-top: 5px; 
-            opacity: 0.9; 
-            line-height: 1.2;
-            white-space: normal;
-            max-width: 90%;
-        }
-        .demand-info { font-size: 1.1em; color: #636e72; font-weight: 600; background: #dfe6e9; padding: 5px 15px; border-radius: 20px; }
     </style>
 </head>
 <body>
@@ -231,7 +199,7 @@
                 stat_turn: "Bẻ lái",
                 stat_accel: "Gia tốc",
                 stat_seat: "Chỗ ngồi",
-                modal_title_wiki: "Thông số (Fischipedia)",
+                modal_title_wiki: "Thông số (Wiki)",
                 modal_loading: "Đang tải dữ liệu...",
                 modal_loading_sub: "Sẽ không tải lại cho đến thứ 2 tuần sau",
                 open_wiki: "Mở Fischipedia.org",
@@ -266,7 +234,7 @@
                 stat_turn: "Steering",
                 stat_accel: "Acceleration",
                 stat_seat: "Seats",
-                modal_title_wiki: "Stats (Fischipedia)",
+                modal_title_wiki: "Stats (Wiki)",
                 modal_loading: "Loading data...",
                 modal_loading_sub: "Will not reload until next Monday",
                 open_wiki: "Open Fischipedia.org",
@@ -278,15 +246,12 @@
         };
 
         let currentLang = localStorage.getItem('fisch_lang') || 'vi';
-
         function t(key) { return TRANSLATIONS[currentLang][key] || key; }
-
         function toggleLanguage() {
             currentLang = (currentLang === 'vi') ? 'en' : 'vi';
             localStorage.setItem('fisch_lang', currentLang);
             applyLanguage();
         }
-
         function applyLanguage() {
             document.getElementById('lang-btn').innerText = currentLang.toUpperCase();
             document.querySelectorAll('[data-lang-key]').forEach(el => {
@@ -342,11 +307,10 @@
         window.addEventListener('load', () => {
             applyLanguage(); 
             updateStickyOffset();
-            loadAll(); // GỌI LOADALL NGAY KHI LOAD
+            loadAll();
         });
         window.addEventListener('resize', updateStickyOffset);
 
-        // ... [Caching & Proxy logic giống cũ] ...
         function getNextMondayTimestamp() {
             const d = new Date();
             d.setDate(d.getDate() + (1 + 7 - d.getDay()) % 7 || 7); 
@@ -369,6 +333,7 @@
                 return cached.data;
             } catch (e) { return null; }
         }
+
         async function fetchTextWithProxy(url) {
             const proxies = [
                 { name: "CodeTabs", getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
@@ -385,6 +350,7 @@
             }
             throw new Error("All proxies failed.");
         }
+
         async function fetchSheet(key, forceUpdate) {
             let url = SHEET_CONFIG[key];
             if (!url) { console.error(`Thiếu link: ${key}`); return null; }
@@ -409,10 +375,12 @@
                 try { return await fetchTextWithProxy(url + timeStamp); } catch(err) { return null; }
             }
         }
+
         function splitCSV(line) {
             const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             return cols.map(c => c.replace(/^"|"$/g, '').trim().replace(/""/g, '"'));
         }
+
         async function loadAll(forceUpdate = false) {
             const container = document.getElementById('data-container');
             if (Object.keys(imageCache).length === 0 || forceUpdate) {
@@ -442,6 +410,7 @@
                 }
             }
         }
+
         async function fetchImages(forceUpdate) {
             const csv = await fetchSheet('images', forceUpdate);
             if (!csv) return;
@@ -461,11 +430,21 @@
                     const wiki = cols[COL_MAP.images.wiki]?.trim();
                     const flag = cols[COL_MAP.images.flag]?.trim().toLowerCase();
                     const key = normalizeKey(name);
+                    
+                    // Thêm đọc tên phụ (alt_name) từ cột C (index 2 - lưu ý: COL_MAP.images.img2 = 2)
+                    // Cấu trúc mới: Name(0), Img1(1), AltName(2), Wiki(3), Flag(4)
+                    // Cần điều chỉnh logic index nếu cột thay đổi. Dựa trên code trước:
+                    // images: { name: 0, img1: 1, img2: 2, wiki: 3, flag: 4, last_update: 6 }
+                    // => Cột C (Index 2) vừa là img2 cũ, vừa là AltName mới.
+                    const altName = cols[COL_MAP.images.img2]?.trim(); 
+
                     imageCache[key] = {
                         nameDisplay: name,
-                        urls: [img1, img2].filter(url => url && url.length > 5),
+                        nameAlt: altName,
+                        urls: [img1].filter(url => url && url.length > 5), // img2 giờ là altName nên chỉ lấy img1 làm backup
                         wikiLink: wiki,
                         isBoat: (flag && flag.includes('boat')),
+                        isSkin: (flag && flag.includes('skin')), // Flag skin
                         stats: null,
                         fetched: false,
                         sheetVal: null,
@@ -474,6 +453,7 @@
                 }
             });
         }
+
         function updateHeaders() {
             const headerDiv = document.getElementById('header-row');
             let html = '';
@@ -490,6 +470,7 @@
             }
             headerDiv.innerHTML = html;
         }
+
         function renderData(csvText) {
             const container = document.getElementById('data-container');
             container.innerHTML = '';
@@ -543,7 +524,9 @@
                         }
                         itemData.sheetVal = displayVal;
                         itemData.sheetDemand = displayDemand;
-                        if (itemData.isBoat && itemData.wikiLink) {
+                        
+                        // Kích hoạt click cho cả Boat và Skin
+                        if ((itemData.isBoat || itemData.isSkin) && itemData.wikiLink) {
                             interactionHtml = `<span class="hover-wrapper click-trigger" onclick="openModal('${key.replace(/'/g, "\\'")}')">${name}</span>`;
                         } else if (itemData.urls.length > 0) {
                             const imgsJson = JSON.stringify(itemData.urls).replace(/"/g, '&quot;');
@@ -591,7 +574,9 @@
             if (data.urls && data.urls.length > 0) {
                 data.urls.forEach((url, index) => { 
                     let label = t('no_image');
-                    if (data.urls.length > 1) label = (index === 0) ? t('img_game') : t('img_menu'); 
+                    // Logic label cho Skin: Chỉ có 1 ảnh 400px
+                    if (data.isSkin) label = "Skin"; 
+                    else if (data.urls.length > 1) label = (index === 0) ? t('img_game') : t('img_menu'); 
                     imgHtml += `<div class="img-box"><img src="${url}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x200?text=No+Image'"><span class="img-label">${label}</span></div>`; 
                 });
             } else { 
@@ -605,6 +590,15 @@
             const bgStyle = getValueColor(parsedVal.main);
             const displayDemand = data.sheetDemand || '';
 
+            // Nếu là Skin, ẩn bảng stats, chỉ hiện tên Rod
+            const statsSection = data.isSkin ? '' : `
+                <div class="stat-row"><span class="stat-label">${t('stat_price')}:</span> <span class="stat-value" style="color:#e17055">${s.price || '?'}</span></div>
+                <div class="stat-row"><span class="stat-label">${t('stat_speed')}:</span> <span class="stat-value">${s.speed}</span></div>
+                <div class="stat-row"><span class="stat-label">${t('stat_turn')}:</span> <span class="stat-value">${s.turn}</span></div>
+                <div class="stat-row"><span class="stat-label">${t('stat_accel')}:</span> <span class="stat-value">${s.accel}</span></div>
+                <div class="stat-row"><span class="stat-label">${t('stat_seat')}:</span> <span class="stat-value">${s.seat}</span></div>
+            `;
+
             modalBody.innerHTML = `
                 <div class="modal-left" id="modal-images-container">${imgHtml}</div>
                 <div class="modal-right">
@@ -615,17 +609,17 @@
                         </div>
                         ${displayDemand ? `<div class="demand-info">${displayDemand}</div>` : ''}
                     </div>
+                    
                     <div class="modal-title">
                         ${t('modal_title_wiki')} 
-                        ${isError ? '<span style="color:red; font-size:0.6em">(Error)</span>' : ''}
+                        ${isError && !data.isSkin ? '<span style="color:red; font-size:0.6em">(Error)</span>' : ''}
                     </div>
+                    
                     <div id="modal-stats-container">
-                        ${isError ? `<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">${t('error_proxy')}</div>` : ''}
-                        <div class="stat-row"><span class="stat-label">${t('stat_price')}:</span> <span class="stat-value" style="color:#e17055">${s.price || '?'}</span></div>
-                        <div class="stat-row"><span class="stat-label">${t('stat_speed')}:</span> <span class="stat-value">${s.speed}</span></div>
-                        <div class="stat-row"><span class="stat-label">${t('stat_turn')}:</span> <span class="stat-value">${s.turn}</span></div>
-                        <div class="stat-row"><span class="stat-label">${t('stat_accel')}:</span> <span class="stat-value">${s.accel}</span></div>
-                        <div class="stat-row"><span class="stat-label">${t('stat_seat')}:</span> <span class="stat-value">${s.seat}</span></div>
+                        ${isError && !data.isSkin ? `<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">${t('error_proxy')}</div>` : ''}
+                        
+                        ${statsSection}
+                        
                         <div style="margin-top:20px; font-size:0.9em; text-align:right">
                             <a href="${data.wikiLink || 'https://fischipedia.org'}" target="_blank" style="color:white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">${t('open_wiki')} ↗</a>
                         </div>
@@ -634,48 +628,10 @@
             `;
         }
 
-        // [SCRAPER FUNCTIONS - SAME AS BEFORE]
-        function getFischStats(doc, label) {
-            const headings = doc.querySelectorAll('.data-heading');
-            for (let h of headings) {
-                if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) {
-                    let sibling = h.nextElementSibling;
-                    if (sibling && sibling.classList.contains('data-content')) return sibling.textContent.trim();
-                }
-            }
-            return '?';
-        }
-        function getFischPrice(doc) {
-            const headings = doc.querySelectorAll('.data-heading');
-            for (let h of headings) {
-                if (h.textContent.trim().toLowerCase() === 'price') {
-                    let contentNode = h.nextElementSibling;
-                    if (contentNode) {
-                        const isRobux = contentNode.querySelector('img[alt*="Robux"], span[title="Robux"]');
-                        let priceText = contentNode.textContent.trim();
-                        if (isRobux) return priceText + " Robux";
-                        return priceText;
-                    }
-                }
-            }
-            return '?';
-        }
-        async function fetchHighResImage(filePageUrl) {
-            if (!filePageUrl) return null;
-            try {
-                const fullUrl = "https://fischipedia.org" + filePageUrl;
-                const html = await fetchTextWithProxy(fullUrl);
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const link = doc.querySelector('.fullImageLink a');
-                if (link) {
-                    let src = link.getAttribute('href');
-                    if (src.startsWith('//')) src = 'https:' + src;
-                    return src;
-                }
-            } catch(e) {}
-            return null;
-        }
+        // --- SCRAPER ---
+        function getFischStats(doc, label) { /*...*/ const headings = doc.querySelectorAll('.data-heading'); for (let h of headings) { if (h.textContent.trim().toLowerCase().includes(label.toLowerCase())) { let sibling = h.nextElementSibling; if (sibling && sibling.classList.contains('data-content')) return sibling.textContent.trim(); } } return '?'; }
+        function getFischPrice(doc) { /*...*/ const headings = doc.querySelectorAll('.data-heading'); for (let h of headings) { if (h.textContent.trim().toLowerCase() === 'price') { let contentNode = h.nextElementSibling; if (contentNode) { const isRobux = contentNode.querySelector('img[alt*="Robux"], span[title="Robux"]'); let priceText = contentNode.textContent.trim(); if (isRobux) return priceText + " Robux"; return priceText; } } } return '?'; }
+        async function fetchHighResImage(filePageUrl) { /*...*/ if (!filePageUrl) return null; try { const fullUrl = "https://fischipedia.org" + filePageUrl; const html = await fetchTextWithProxy(fullUrl); const parser = new DOMParser(); const doc = parser.parseFromString(html, 'text/html'); const link = doc.querySelector('.fullImageLink a'); if (link) { let src = link.getAttribute('href'); if (src.startsWith('//')) src = 'https:' + src; return src; } } catch(e) {} return null; }
         async function openModal(itemKey) {
             const modal = document.getElementById('info-modal');
             const modalBody = document.getElementById('modal-body-content');
@@ -698,8 +654,57 @@
             }
             renderModalContent(itemKey);
         }
+        
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
+                // LOGIC RIÊNG CHO SKIN
+                if (imageCache[itemKey].isSkin) {
+                    const skinUrl = "https://fischipedia.org/wiki/Skins";
+                    const html = await fetchTextWithProxy(skinUrl);
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    const targetNames = [imageCache[itemKey].nameDisplay, imageCache[itemKey].nameAlt].filter(n => n).map(n => n.toLowerCase());
+                    const imgs = doc.querySelectorAll('.mw-parser-output img');
+                    let foundSrc = null;
+
+                    for(let img of imgs) {
+                        const alt = (img.getAttribute('alt') || '').toLowerCase();
+                        const title = (img.closest('a')?.getAttribute('title') || '').toLowerCase();
+                        
+                        if (targetNames.some(n => alt === n || title === n)) {
+                            // Logic tìm ảnh 400px
+                            const srcset = img.getAttribute('srcset') || '';
+                            if (srcset.includes('400px-')) {
+                                const match = srcset.match(/(\/\/[\w.-]+\/fischwiki\/thumb\/[^ ]+\/400px-[^ ]+\.png)/);
+                                if(match) foundSrc = match[1];
+                            }
+                            if (!foundSrc) {
+                                let src = img.getAttribute('src');
+                                if (src && src.includes('/thumb/')) {
+                                    foundSrc = src.replace(/\/\d+px-/, '/400px-');
+                                } else {
+                                    foundSrc = src;
+                                }
+                            }
+                            if(foundSrc) break;
+                        }
+                    }
+
+                    if(foundSrc) {
+                        if(foundSrc.startsWith('//')) foundSrc = 'https:' + foundSrc;
+                        const dataToCache = { stats: {}, urls: [foundSrc] };
+                        saveToCache(itemKey, dataToCache);
+                        imageCache[itemKey].urls = [foundSrc];
+                        imageCache[itemKey].fetched = true;
+                    } else {
+                        // Không tìm thấy ảnh skin
+                        imageCache[itemKey].fetched = true; // Đánh dấu đã tìm để không tìm lại
+                    }
+                    return; // Kết thúc logic Skin
+                }
+
+                // LOGIC CŨ CHO BOAT (GIỮ NGUYÊN)
                 let targetUrl = wikiUrl;
                 if (!targetUrl.includes('fischipedia.org')) {
                      let pageName = imageCache[itemKey].nameDisplay.replace(/ /g, '_');
