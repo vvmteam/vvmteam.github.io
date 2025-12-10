@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Value (v18.3 - Rod Name Fix)</title>
+    <title>Fisch Value (v19.0 - Bulk Skin Fetch)</title>
     <style>
         /* --- CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -93,18 +93,7 @@
         .btn-no { background: #636e72; color: white; }
 
         .modal-header-info { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-        .value-circle { 
-            width: 140px; height: 140px; 
-            border-radius: 50%; 
-            color: white; 
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            margin-bottom: 10px;
-            transition: transform 0.3s;
-            text-align: center;
-            padding: 5px;
-            overflow: hidden;
-        }
+        .value-circle { width: 140px; height: 140px; border-radius: 50%; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); margin-bottom: 10px; transition: transform 0.3s; text-align: center; padding: 5px; overflow: hidden; }
         .value-circle:hover { transform: scale(1.05); }
         .val-num { font-size: 2em; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .val-note { font-size: 0.35em; margin-top: 5px; opacity: 0.9; line-height: 1.2; white-space: normal; max-width: 90%; }
@@ -230,7 +219,7 @@
                 col_demand: "DEMAND",
                 col_status: "STATUS",
                 col_skin: "SKIN NAME",
-                col_rod: "ROD NAME",
+                col_rod: "Rod", // Đã sửa thành Rod thay vì ROD NAME
                 stat_price: "Price",
                 stat_speed: "Speed",
                 stat_turn: "Steering",
@@ -520,9 +509,9 @@
                         itemData.sheetVal = displayVal;
                         itemData.sheetDemand = displayDemand;
                         
-                        // --- LOGIC CLICK CẬP NHẬT ---
-                        // 1. Boat: Cần flag 'boat' + Có Link Wiki
-                        // 2. Skin: Cần flag 'skin' (Không cần Link vì tự động tìm)
+                        // LOGIC CLICK CẬP NHẬT:
+                        // Boat: Flag 'boat' + WikiLink
+                        // Skin: Flag 'skin'
                         const isClickableBoat = itemData.isBoat && itemData.wikiLink;
                         const isClickableSkin = itemData.isSkin;
 
@@ -657,46 +646,65 @@
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
                 if (imageCache[itemKey].isSkin) {
+                    // Logic Bulk Fetch Skin (Chỉ chạy 1 lần/phiên hoặc khi chưa có cache)
+                    if (window.hasFetchedSkins) {
+                        // Nếu đã fetch rồi mà item này chưa có data -> tức là không tìm thấy trên wiki
+                        imageCache[itemKey].fetched = true;
+                        return;
+                    }
+
                     const skinUrl = "https://fischipedia.org/wiki/Skins";
                     const html = await fetchTextWithProxy(skinUrl);
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
                     
-                    const targetNames = [imageCache[itemKey].nameDisplay, imageCache[itemKey].nameAlt].filter(n => n).map(n => n.toLowerCase());
+                    const wikiImageMap = new Map();
                     const imgs = doc.querySelectorAll('.mw-parser-output img');
-                    let foundSrc = null;
 
-                    for(let img of imgs) {
-                        const alt = (img.getAttribute('alt') || '').toLowerCase();
-                        const title = (img.closest('a')?.getAttribute('title') || '').toLowerCase();
-                        
-                        if (targetNames.some(n => alt === n || title === n)) {
+                    imgs.forEach(img => {
+                        let name = img.getAttribute('alt') || img.closest('a')?.getAttribute('title');
+                        if (name) {
+                            name = name.toLowerCase().trim();
+                            // Logic trích xuất link 400px
+                            let src = null;
                             const srcset = img.getAttribute('srcset') || '';
                             if (srcset.includes('400px-')) {
                                 const match = srcset.match(/(\/\/[\w.-]+\/fischwiki\/thumb\/[^ ]+\/400px-[^ ]+\.png)/);
-                                if(match) foundSrc = match[1];
+                                if(match) src = match[1];
                             }
-                            if (!foundSrc) {
-                                let src = img.getAttribute('src');
-                                if (src && src.includes('/thumb/')) {
-                                    foundSrc = src.replace(/\/\d+px-/, '/400px-');
+                            if (!src) {
+                                let rawSrc = img.getAttribute('src');
+                                if (rawSrc && rawSrc.includes('/thumb/')) {
+                                    src = rawSrc.replace(/\/\d+px-/, '/400px-');
                                 } else {
-                                    foundSrc = src;
+                                    src = rawSrc;
                                 }
                             }
-                            if(foundSrc) break;
+                            if(src) wikiImageMap.set(name, src);
                         }
-                    }
+                    });
 
-                    if(foundSrc) {
-                        if(foundSrc.startsWith('//')) foundSrc = 'https:' + foundSrc;
-                        const dataToCache = { stats: {}, urls: [foundSrc] };
-                        saveToCache(itemKey, dataToCache);
-                        imageCache[itemKey].urls = [foundSrc];
-                        imageCache[itemKey].fetched = true;
-                    } else {
-                        imageCache[itemKey].fetched = true; 
-                    }
+                    // Cập nhật TOÀN BỘ Skin trong cache
+                    Object.keys(imageCache).forEach(k => {
+                        const item = imageCache[k];
+                        if (item.isSkin) {
+                            const targetNames = [item.nameDisplay, item.nameAlt].filter(n => n).map(n => n.toLowerCase());
+                            for (let tName of targetNames) {
+                                if (wikiImageMap.has(tName)) {
+                                    let url = wikiImageMap.get(tName);
+                                    if(url.startsWith('//')) url = 'https:' + url;
+                                    
+                                    item.urls = [url];
+                                    item.stats = {}; 
+                                    item.fetched = true;
+                                    saveToCache(k, { stats: {}, urls: [url] });
+                                    break;
+                                }
+                            }
+                        }
+                    });
+
+                    window.hasFetchedSkins = true;
                     return; 
                 }
 
