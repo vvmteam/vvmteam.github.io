@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Value (v19.0 - Bulk Skin Fetch)</title>
+    <title>Fisch Value (v19.0 - Final Skin Logic)</title>
     <style>
         /* --- CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -93,7 +93,18 @@
         .btn-no { background: #636e72; color: white; }
 
         .modal-header-info { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-        .value-circle { width: 140px; height: 140px; border-radius: 50%; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); margin-bottom: 10px; transition: transform 0.3s; text-align: center; padding: 5px; overflow: hidden; }
+        .value-circle { 
+            width: 140px; height: 140px; 
+            border-radius: 50%; 
+            color: white; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            margin-bottom: 10px;
+            transition: transform 0.3s;
+            text-align: center;
+            padding: 5px;
+            overflow: hidden;
+        }
         .value-circle:hover { transform: scale(1.05); }
         .val-num { font-size: 2em; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .val-note { font-size: 0.35em; margin-top: 5px; opacity: 0.9; line-height: 1.2; white-space: normal; max-width: 90%; }
@@ -219,7 +230,7 @@
                 col_demand: "DEMAND",
                 col_status: "STATUS",
                 col_skin: "SKIN NAME",
-                col_rod: "Rod", // Đã sửa thành Rod thay vì ROD NAME
+                col_rod: "Rod",
                 stat_price: "Price",
                 stat_speed: "Speed",
                 stat_turn: "Steering",
@@ -328,7 +339,8 @@
         async function fetchTextWithProxy(url) {
             const proxies = [
                 { name: "CodeTabs", getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
-                { name: "CorsLol", getUrl: (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}` }
+                { name: "CorsLol", getUrl: (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}` },
+                { name: "CrossOrigin", getUrl: (u) => `https://crossorigin.me/${u}` } // Thêm phương thức mới
             ];
             for (let proxy of proxies) {
                 try {
@@ -509,9 +521,9 @@
                         itemData.sheetVal = displayVal;
                         itemData.sheetDemand = displayDemand;
                         
-                        // LOGIC CLICK CẬP NHẬT:
-                        // Boat: Flag 'boat' + WikiLink
-                        // Skin: Flag 'skin'
+                        // --- LOGIC CLICK CẬP NHẬT (FLAG) ---
+                        // Boat: Cần flag 'boat' + WikiLink
+                        // Skin: Cần flag 'skin' (Không cần link)
                         const isClickableBoat = itemData.isBoat && itemData.wikiLink;
                         const isClickableSkin = itemData.isSkin;
 
@@ -591,6 +603,9 @@
                 <div class="stat-row"><span class="stat-label">${t('stat_seat')}:</span> <span class="stat-value">${s.seat}</span></div>
             `;
 
+            // LINK LOGIC (NEW)
+            const targetLink = data.isSkin ? 'https://fischipedia.org/wiki/Skins' : (data.wikiLink || 'https://fischipedia.org');
+
             modalBody.innerHTML = `
                 <div class="modal-left" id="modal-images-container">${imgHtml}</div>
                 <div class="modal-right">
@@ -609,7 +624,7 @@
                         ${isError && !data.isSkin ? `<div style="color:#d63031; padding:10px; background:#ffeaa7; border-radius:8px; margin-bottom:10px; font-size:0.9em;">${t('error_proxy')}</div>` : ''}
                         ${statsSection}
                         <div style="margin-top:20px; font-size:0.9em; text-align:right">
-                            <a href="${data.wikiLink || 'https://fischipedia.org'}" target="_blank" style="color:white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">${t('open_wiki')} ↗</a>
+                            <a href="${targetLink}" target="_blank" style="color:white; background:#0984e3; padding:8px 15px; border-radius:4px; text-decoration:none; display:inline-block;">${t('open_wiki')} ↗</a>
                         </div>
                     </div>
                 </div>
@@ -646,9 +661,7 @@
         async function scrapeWikiData(itemKey, wikiUrl) {
             try {
                 if (imageCache[itemKey].isSkin) {
-                    // Logic Bulk Fetch Skin (Chỉ chạy 1 lần/phiên hoặc khi chưa có cache)
                     if (window.hasFetchedSkins) {
-                        // Nếu đã fetch rồi mà item này chưa có data -> tức là không tìm thấy trên wiki
                         imageCache[itemKey].fetched = true;
                         return;
                     }
@@ -665,7 +678,6 @@
                         let name = img.getAttribute('alt') || img.closest('a')?.getAttribute('title');
                         if (name) {
                             name = name.toLowerCase().trim();
-                            // Logic trích xuất link 400px
                             let src = null;
                             const srcset = img.getAttribute('srcset') || '';
                             if (srcset.includes('400px-')) {
@@ -684,7 +696,6 @@
                         }
                     });
 
-                    // Cập nhật TOÀN BỘ Skin trong cache
                     Object.keys(imageCache).forEach(k => {
                         const item = imageCache[k];
                         if (item.isSkin) {
