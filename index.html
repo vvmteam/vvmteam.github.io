@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fisch Value (v19.0 - Final Skin Logic)</title>
+    <title>Fisch Value (v19.3 - Cross Data)</title>
     <style>
         /* --- CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ebedef; margin: 0; padding: 0; color: #333; }
@@ -93,18 +93,7 @@
         .btn-no { background: #636e72; color: white; }
 
         .modal-header-info { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-        .value-circle { 
-            width: 140px; height: 140px; 
-            border-radius: 50%; 
-            color: white; 
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            margin-bottom: 10px;
-            transition: transform 0.3s;
-            text-align: center;
-            padding: 5px;
-            overflow: hidden;
-        }
+        .value-circle { width: 140px; height: 140px; border-radius: 50%; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); margin-bottom: 10px; transition: transform 0.3s; text-align: center; padding: 5px; overflow: hidden; }
         .value-circle:hover { transform: scale(1.05); }
         .val-num { font-size: 2em; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .val-note { font-size: 0.35em; margin-top: 5px; opacity: 0.9; line-height: 1.2; white-space: normal; max-width: 90%; }
@@ -292,7 +281,8 @@
         let currentMode = 'obtain'; 
         let currentTab  = 'boat';
         let imageCache = {}; 
-        let dataCache = {};     
+        let dataCache = {}; 
+        let SKIN_ROD_MAP = {}; // Biến toàn cục lưu danh sách Skin -> Rod
 
         function normalizeKey(str) {
             if (!str) return "";
@@ -306,9 +296,11 @@
                 document.documentElement.style.setProperty('--header-offset', (height - 1) + 'px');
             }
         }
+        
         window.addEventListener('load', () => {
             applyLanguage(); 
             updateStickyOffset();
+            preloadSkinData(); // Preload data ngay
             loadAll();
         });
         window.addEventListener('resize', updateStickyOffset);
@@ -340,7 +332,7 @@
             const proxies = [
                 { name: "CodeTabs", getUrl: (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
                 { name: "CorsLol", getUrl: (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}` },
-                { name: "CrossOrigin", getUrl: (u) => `https://crossorigin.me/${u}` } // Thêm phương thức mới
+                { name: "CrossOrigin", getUrl: (u) => `https://crossorigin.me/${u}` }
             ];
             for (let proxy of proxies) {
                 try {
@@ -352,6 +344,22 @@
                 } catch (e) { continue; }
             }
             throw new Error("All proxies failed.");
+        }
+
+        // --- HÀM PRELOAD DỮ LIỆU SKIN ---
+        async function preloadSkinData() {
+            const csv = await fetchSheet('obtain_skin', false);
+            if (csv) {
+                const lines = csv.split('\n');
+                lines.forEach(line => {
+                    const cols = splitCSV(line);
+                    const name = cols[COL_MAP.obtain_skin.name];
+                    const rod = cols[COL_MAP.obtain_skin.rod];
+                    if (name && rod) {
+                        SKIN_ROD_MAP[normalizeKey(name)] = rod;
+                    }
+                });
+            }
         }
 
         async function fetchSheet(key, forceUpdate) {
@@ -521,9 +529,6 @@
                         itemData.sheetVal = displayVal;
                         itemData.sheetDemand = displayDemand;
                         
-                        // --- LOGIC CLICK CẬP NHẬT (FLAG) ---
-                        // Boat: Cần flag 'boat' + WikiLink
-                        // Skin: Cần flag 'skin' (Không cần link)
                         const isClickableBoat = itemData.isBoat && itemData.wikiLink;
                         const isClickableSkin = itemData.isSkin;
 
@@ -588,12 +593,18 @@
             const rawValue = data.sheetVal || 'N/A';
             const parsedVal = parseValueDisplay(rawValue);
             const bgStyle = getValueColor(parsedVal.main);
-            const displayDemand = data.sheetDemand || '';
+            
+            // LOGIC LẤY DEMAND HOẶC ROD NAME TỪ MAP
+            let displayDemand = data.sheetDemand || '';
+            // Nếu là Skin (ở bất kỳ tab nào), lấy tên Rod từ MAP
+            if (data.isSkin && SKIN_ROD_MAP[normalizeKey(data.nameDisplay)]) {
+                displayDemand = SKIN_ROD_MAP[normalizeKey(data.nameDisplay)];
+            }
 
             const statsSection = data.isSkin ? `
                 <div class="stat-row">
                     <span class="stat-label">${t('col_rod')}:</span>
-                    <span class="stat-value">${data.sheetDemand || '?'}</span>
+                    <span class="stat-value">${displayDemand || '?'}</span>
                 </div>
             ` : `
                 <div class="stat-row"><span class="stat-label">${t('stat_price')}:</span> <span class="stat-value" style="color:#e17055">${s.price || '?'}</span></div>
@@ -602,8 +613,7 @@
                 <div class="stat-row"><span class="stat-label">${t('stat_accel')}:</span> <span class="stat-value">${s.accel}</span></div>
                 <div class="stat-row"><span class="stat-label">${t('stat_seat')}:</span> <span class="stat-value">${s.seat}</span></div>
             `;
-
-            // LINK LOGIC (NEW)
+            
             const targetLink = data.isSkin ? 'https://fischipedia.org/wiki/Skins' : (data.wikiLink || 'https://fischipedia.org');
 
             modalBody.innerHTML = `
