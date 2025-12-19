@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fisch Tool by Fuyutya</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --menu-bg: rgba(255, 255, 255, 0.05);
+            --text-color: #cdd6f4;
+            --active-gradient: linear-gradient(135deg, #89b4fa 0%, #74c7ec 100%);
+            --active-text: #11111b;
+            --hover-bg: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- 1. MENU BAR HIỆN ĐẠI --- */
+        #top-bar {
+            height: 70px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            background: var(--menu-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+            white-space: nowrap;
+            gap: 12px;
+            scrollbar-width: none; /* Firefox */
+        }
+        
+        #top-bar::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        /* --- 2. NÚT BẤM (BUTTONS) --- */
+        .nav-item {
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            outline: none;
+        }
+
+        .nav-item:hover {
+            background-color: var(--hover-bg);
+            transform: translateY(-1px);
+        }
+
+        .nav-item.active {
+            background: var(--active-gradient);
+            color: var(--active-text);
+            box-shadow: 0 4px 15px rgba(116, 199, 236, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* --- 3. KHUNG HIỂN THỊ (IFRAME) --- */
+        .content-wrapper {
+            flex: 1;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #main-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 16px;
+            background-color: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="top-bar"></div>
+
+    <div class="content-wrapper">
+        <iframe id="main-frame" name="content-frame" src=""></iframe>
+    </div>
+
+    <script>
+        // ============================================================
+        // ⚙️ CẤU HÌNH DANH SÁCH TRANG WEB
+        // ============================================================
+        const appConfig = [
+            {title: "🏠 Value", url: "https://vvmteam.github.io/value.html"},
+            {title: "🗺️ Treasure Hunt", url: "https://vvmteam.github.io/treasure.html"},
+            // Thêm nút mới: copy dòng dưới
+            // { title: "Tên nút", url: "Link trang web" },
+        ];
+        // ============================================================
+
+        const menuContainer = document.getElementById('top-bar');
+        const iframe = document.getElementById('main-frame');
+        
+        // Mảng lưu trữ nút để dùng cho việc khôi phục trạng thái
+        let buttons = [];
+
+        function initApp() {
+            appConfig.forEach((page, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'nav-item';
+                btn.innerHTML = page.title; 
+
+                btn.onclick = () => {
+                    // 1. Hiệu ứng active
+                    buttons.forEach(b => b.classList.remove('active')); // Xóa active ở tất cả nút trong mảng
+                    btn.classList.add('active');
+
+                    // 2. Load iframe (Kiểm tra xem link có khác không mới load để tránh lag)
+                    if (iframe.src !== page.url) {
+                        iframe.style.animation = 'none';
+                        iframe.offsetHeight; /* trigger reflow */
+                        iframe.style.animation = 'fadeIn 0.5s ease forwards';
+                        iframe.src = page.url;
+                    }
+
+                    // 3. LƯU TRẠNG THÁI VÀO BỘ NHỚ
+                    localStorage.setItem('fischToolTab', index);
+                };
+
+                menuContainer.appendChild(btn);
+                buttons.push(btn); // Thêm nút vào danh sách quản lý
+            });
+
+            // --- TỰ ĐỘNG KHÔI PHỤC TAB CŨ ---
+            const savedIndex = localStorage.getItem('fischToolTab');
+
+            if (savedIndex !== null && buttons[savedIndex]) {
+                // Nếu có lịch sử -> Bấm nút cũ
+                buttons[savedIndex].click();
+            } else {
+                // Nếu không có lịch sử -> Bấm nút đầu tiên
+                buttons[0].click();
+            }
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
